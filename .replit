@@ -1,0 +1,8 @@
+language = "python3"
+run = "python train_v22_stage1.py --sample 10"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "pip install torch numpy opencv-python scikit-image && python train_v22_stage1.py --sample 10"]
