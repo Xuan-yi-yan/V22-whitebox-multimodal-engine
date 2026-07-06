@@ -1,6 +1,6 @@
 
 <p align="center">
-  <a href="https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine#quick-start"><img src="https://img.shields.io/badge/▶_Quick_Start-点我运行-blue?style=for-the-badge"></a>
+  <a href="https://gitpod.io/#https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine"><img src="https://img.shields.io/badge/▶_Quick_Start-Gitpod运行-blue?style=for-the-badge"></a>
   <a href="V22_ABCDEF_方案.txt"><img src="https://img.shields.io/badge/📐_Architecture-ABCDEF认知堆栈-green?style=for-the-badge"></a>
   <a href="https://github.com/Xuan-yi-yan/vllm"><img src="https://img.shields.io/badge/🔬_vLLM_Contributor-PR_47491-red?style=for-the-badge"></a>
 </p>
