@@ -1,0 +1,4 @@
+image: gitpod/workspace-python-3.9
+tasks:
+  - init: pip install torch numpy opencv-python scikit-image
+    command: python train_v22_stage1.py --sample 10
