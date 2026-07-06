@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>卫锦旗 - AI架构师</title>
+<style>
+body{font-family:"Microsoft YaHei",sans-serif;max-width:900px;margin:30px auto;color:#1a1a1a;line-height:1.7;font-size:14px}
+h1{font-size:22px;border-bottom:2px solid #1a56db;padding-bottom:8px;color:#1a56db}
+h2{font-size:16px;margin-top:18px;color:#1e40af;border-left:3px solid #1a56db;padding-left:8px}
+h3{font-size:14px;margin:8px 0 4px 0;color:#333}
+ul{margin:4px 0 4px 16px;padding:0}
+li{margin:2px 0}
+.sk{display:inline-block;background:#dbeafe;padding:1px 8px;margin:1px;border-radius:3px;font-size:12px;color:#1e40af}
+.impact{display:inline-block;background:#fef3c7;padding:1px 6px;margin:1px;border-radius:3px;font-size:11px}
+.info{color:#666;font-size:13px}
+</style></head><body>
+
+<h1>卫锦旗 — AI架构师 / 大模型推理与多模态认知系统</h1>
+<p class="info">📧 1503163696@qq.com &nbsp;|&nbsp; 📞 15525705258 &nbsp;|&nbsp; 📍 北京 &nbsp;|&nbsp; 随时到岗</p>
+<p class="info">🔗 GitHub: github.com/Xuan-yi-yan &nbsp;|&nbsp; vLLM Contributor &nbsp;|&nbsp; DeepSeek-V3社区诊断贡献者</p>
+
+<div style="margin:8px 0">
+<span class="sk">Python</span><span class="sk">PyTorch</span><span class="sk">vLLM贡献者</span><span class="sk">KV Cache诊断</span><span class="sk">Hybrid模型对齐</span><span class="sk">Prefix Caching</span><span class="sk">白盒模块化架构</span><span class="sk">Cross-Attention</span><span class="sk">RMSNorm</span><span class="sk">门控系统</span><span class="sk">分层Adam优化</span><span class="sk">梯度诊断</span><span class="sk">NaN回滚</span><span class="sk">多Agent协作</span><span class="sk">LLM API集成</span><span class="sk">混合精度训练</span><span class="sk">多模态统一架构</span><span class="sk">球面归一化控数值</span><span class="sk">ABCDEF认知堆栈</span>
+</div>
+
+<!-- ======== 开源贡献前置 ======== -->
+
+<h2>1. vLLM / vLLM-Ascend 开源贡献 (2026.07, 85K stars)</h2>
+<h3>全球最大LLM推理引擎 + 华为昇腾生态 | 4个PR/RFC | RTX 5070物理验证</h3>
+<ul>
+<li><b>vLLM主仓库 PR #47491</b>: 修复hybrid模型Mamba组零命中导致prefix cache截断，5行修复，9位reviewer(含WoosukKwon/vLLM创始人)</li>
+<li><b>vLLM-Ascend PR #11314</b>: Progressive alignment算法修复DeepSeek V4 MTP 32K→16K缓存截断，_progressive_align_steps + 早退守卫，CI全绿</li>
+<li><b>vLLM-Ascend RFC #11356</b>: PD分离下Mamba状态独立通道路由架构提案，HybridTransferTracker控制面与数据面解耦 + min()优雅降级 + Feature Flag</li>
+<li><b>vLLM RFC #45702</b>: DAG + CoW方案解决Mamba并发前缀共享，不改CUDA kernel，在RTX 5070上物理验证通过</li>
+</ul>
+
+<h2>2. DeepSeek-V3 社区技术贡献 (2026.06, 104K stars)</h2>
+<h3>六月社区月度报告正式收录 — "研究人员提供关键诊断和解决方案"板块</h3>
+<ul>
+<li><b>引力子锚点 (Graviton Anchors)</b>: 概念被AmoebaFPS独立研究实验室采纳为正式术语，形式化为GDI数学框架 + PyTorch MVS实现</li>
+<li><b>注意力锁定诊断</b>: #1125发现推理后缀约束导致meta-signal污染content-signal，根因被社区采纳为诊断范式(#1463引用)</li>
+<li><b>安全锚点注入</b>: #1368提出"安全是闸门不是权重"，三套推理时方案(锚点注入/Logit Bias/CoT检查)</li>
+<li><b>语义预标注中间件</b>: #1420提出KV池语义索引方案，被HeartFlow生产系统验证(3个月数据, 40% token减少)</li>
+<li><b>AmoebaFPS公开回复</b>: "这是收到的最重要洞察...参数空间瓶颈是缺失的一环"，GDI框架采纳为本人的Graviton Anchors概念形式化</li>
+<li><b>五个issue根因分析</b>: #5083(Qwen) + #1368 + #1420 + #1125 + #1460，五个维度全覆盖(OS→安全→注意力→推理→训练)</li>
+</ul>
+
+<!-- ======== 个人项目 ======== -->
+
+<h2>3. V21→V22 白盒多模态认知引擎 (独立开发, 2026.05-07)</h2>
+<h3>从V21单模态文本引擎扩展为V22三模态(文本/视觉/声学)统一架构——一套ABCDEF认知堆栈吃三模态，信号层统一"整数/频率→Embed球面+属性"，而非三套特化模型。12+模块~9.9M参数全可解释，单卡RTX 5070训练。底层分层显存管理、梯度诊断与NaN防护机制可直接迁移至大模型分布式训练与推理引擎的稳定性设计。</h3>
+
+<h3>架构</h3>
+<ul>
+<li><b>CharEmbed</b>: 3000字×256D正交初始化</li>
+<li><b>P3属性栈</b>: 14模块规则引擎(0参数)，128D×126槽位3层分级(词类/语义/句法/情感/逻辑/修饰/领域/风格)</li>
+<li><b>P7交叉注意力</b>: 16头×16D，Q=A句/KV=全词表，<b>RMSNorm Q/K防连乘爆炸</b>，温度可学习</li>
+<li><b>P3-L属性联动</b>: 312头独立注意力，23组属性关联度统计</li>
+<li><b>ABC三阶逻辑推理</b>: StageA(结构15类)→StageB(128D内容)→StageC(48D语气)</li>
+<li><b>384D拼接Gate</b>: base/abc/sent三信号各128D独立通道→Explore→Meta→Gate[256]调制P6</li>
+<li><b>P6解码器</b>: 128头×Linear(256,256)，tied weights</li>
+<li><b>ABC'内容加压 (V21.1)</b>: P3-L后插入加压模块(128→192→128)，加法注入P6，冷启动安全</li>
+</ul>
+
+<h3>V22 多模态扩展 (2026.07, 三模态收官)</h3>
+<ul>
+<li><b>通用token引擎(扩展非重构)</b>: 文本(char_embed)/视觉(VisualEmbed，16×16原始像素768→256)/声学(AudioEmbed，FFT幅度谱最底层→256)统一为"256D球面Embed + 属性"同构token，一套P7→ABC→P6处理三模态——拒绝Whisper/ViT式的每模态特化烟囱</li>
+<li><b>ABCDEF六层认知堆栈</b>: 在ABC三阶上扩D(关系审查:关系即P3属性，ABC逻辑审查不引入GNN)+E(记忆读写头:sent_vec余弦检索+属性混合+文件缓存)，属性维度128→384(语言128+视觉256)</li>
+<li><b>球面归一化根治数值崩溃</b>: 定位崩溃链"数值范围过大→梯度冲击→sigmoid饱和→gate梯度死→连锁全崩"，用F.normalize单位向量根治(冷启动gain只推后不治本)——同ac软归一化哲学</li>
+<li><b>跨模态对比loss方向性</b>: 图/声→文用余弦相似度、文→图/声用皮尔逊相关系数(需数值线性对应)</li>
+<li><b>三模态验证</b>: 文本loss→0.0001自动停训、视觉"图(苹果)→预测:苹果"完全正确、声学"模拟FFT→文"数据流通，一套引擎全跑通</li>
+</ul>
+
+<h3>训练系统</h3>
+<ul>
+<li><b>7独立Adam优化器 + 分层学习率</b>: 基于梯度/参数比精确计算——P7×0.05(压97%), Gate×5.0(提5x), ABC×3.0</li>
+<li><b>5层智能防护</b>: ①ac_batch实时检测 ②CE单次尖峰检测+clamp ③aux_scale渐进自愈(5%/步) ④NaN自动回滚(from best.pt) ⑤loss<0.0001自动停车</li>
+<li><b>梯度诊断系统</b>: 逐模块grad/param ratio实时追踪</li>
+<li><b>数据工程</b>: 贪心覆盖采样(1500对=89%字表)，脏数据过滤(4360对/8.3%)，52K全量分析</li>
+</ul>
+
+<h3>Bug猎人</h3>
+<ul>
+<li>25+假说验证 → 18个推翻 → 12个确认真Bug → <b>定位"假的2.1%": eval脚本维度不匹配</b></li>
+<li><b>sigmoid bias死梯度</b>: bias=2.0→gate端5轮全死，追6小时定位</li>
+<li>36小时"破晓行动": 9轮双核辩论+60处代码修改+4项架构升级</li>
+</ul>
+
+<h2>4. 双核辩论Agent审计系统 (2026.06)</h2>
+<ul>
+<li><b>架构</b>: DeepSeek(只读分析)+千问(读写审查)，自动辩论循环(最多5轮)，收敛判断</li>
+<li><b>7个工具</b>: read_file / search_files / search_content / list_dir / web_fetch / run_cmd / write_file</li>
+<li><b>权限控制</b>: DeepSeek readonly(隐藏write/run_cmd)，千问完整权限。JSON+XML双格式工具调用解析</li>
+<li><b>战绩</b>: 9轮辩论定位6个P0级Bug，含eval脚本维度不匹配(准确率2.1%→78.6%真相)</li>
+</ul>
+
+<h2>5. 黑盒V2多元组架构 (2026.06, 3小时从零到验证)</h2>
+<ul>
+<li>可训练N元字符组替代规则引擎，"哪些字常一起出现"由模型自学</li>
+<li>10M参数，1500对CE下降正常(6→2.2)，架构验证通过</li>
+</ul>
+
+<h2>核心能力标签</h2>
+<div>
+<span class="sk">白盒架构从0设计</span><span class="sk">vLLM/KV Cache</span><span class="sk">Hybrid模型对齐</span><span class="sk">注意力机制魔改</span><span class="sk">梯度诊断</span><span class="sk">Bug猎手(25假说)</span><span class="sk">分层优化器</span><span class="sk">NaN回滚</span><span class="sk">多Agent系统</span><span class="sk">全栈独立开发</span><span class="sk">技术写作(220+文件)</span>
+</div>
+
+<div style="margin-top:20px;padding-top:10px;border-top:1px solid #ddd;color:#999;font-size:12px">
+<p>附件: 技术能力与成果展示文档.txt | V21_Bug猎人_执着修复全记录.txt | V21_36小时破晓行动_完整时间线.txt | 双核辩论系统_架构与战绩.txt</p>
+</div>
+
+</body></html>

@@ -1,0 +1,173 @@
+═══════════════════════════════════════════════════════════════
+  V21 Bug猎人 — 所有Bug定位与修复全记录
+  47天开发, 定位并修复 ~30+个Bug
+  风格: 不信直觉, 只信实验。不盲从AI, 必须亲眼验证。
+═══════════════════════════════════════════════════════════════
+
+【一则核心信条】
+  "你们说的可能对, 但我必须跑实验亲眼看到结果。"
+  ——AI说gate饱和, 验证推翻了。
+  ——AI说aux阶跃, 验证推翻了。
+  ——AI说explore缺tanh, 验证推翻了。
+  ——AI说40M太大, 其实是bias初始化问题。
+  "不跑验证不接受结论" 是唯一准则。
+
+
+一、V20时期 (6/18-6/22, 7个致命Bug)
+
+  Bug1: P7偷看B句 — K/V=全词表, 以为用了B
+    定位: train_v19_turbo.py中vocab=char_embed.weight
+    修复: 确认K/V是词表, 不涉及B句 ✅
+
+  Bug2: char_embed mean塌缩 — sent_vec接近零向量
+    假说: Q/K梯度消失 或 正交init让embed尺度太小
+    实验: 直接查ckpt char_embed std=0.018
+    结论: 是正交init的正常值(1/√3005), 未塌缩 ✅
+
+  Bug3: P7 forward_batch内部_loss_vec=None — 127K参数白费
+    定位: explore_net只在_loss_vec有值时激活
+    修复: training loop中每batch设p7._loss_vec ✅
+
+  Bug4: p7_input_proj定义了但从没调用 — P3属性被丢弃
+    定位: train_v19_turbo.py中forward_batch输入直接是char_embed, 绕过p7_input_proj
+    修复: Av_rich = torch.cat([A_emb, attr]) → p7_input_proj(Av_rich) ✅
+
+  Bug5: ABC loss系数0.01/0.05 — ABC只参与了0.1%梯度
+    定位: batch_loss中ABC loss被乘以极小系数
+    修复: 全部改为1.0 ✅
+
+  Bug6: gate_loss永远是常数0.1 — wg_batch全是0.5
+    定位: gate_loss=(wg.std()-0.1).abs() 但wg全是常数
+    修复: gate_loss=(wg.std()*10).clamp(0.01,1.0) ✅
+
+  Bug7: c2i从全量52K构建 — 6166字只有3000字真正出现
+    定位: 先build c2i再sample数据, 顺序反了
+    修复: 先sample再build c2i ✅
+
+
+二、"假的2.1%" — 最大最大最大Bug (6/22-6/25)
+
+  现象: V20 E1400 loss=0.1265, 考试准确率永远2.1%
+  消耗: 4天时间, 11个假说被验证排除
+
+  假说1: _loss_vec训练推理不一致
+    实验: eval时设p7._loss_vec=eval_loss_vec
+    结果: sv diff=0.0000, sent_vec完全不变 → ❌排除
+
+  假说2: word_gate杀死P7信号
+    实验: 强制word_gate=1.0
+    结果: 准确率2.1%→2.3% → ❌排除
+
+  假说3: P6在背训练集模板
+    实验: 对比解码(Contrastive Decoding) α=0.3~1.5
+    结果: 最佳2.5%, 最差1.6% → ❌排除
+
+  假说4: attention温度太低
+    实验: scores × [3,5,10,20] 锐化
+    结果: 准确率始终0/11 → ❌排除
+
+  假说5: char_embed塌缩
+    实验: 查std=0.0183, 理论值1/√3005=0.0183
+    结果: 完全吻合, 未塌缩 → ❌排除
+
+  假说6: Q/K投影未训练
+    实验: 对比fresh init权重
+    结果: q_proj norm=85(init=5.7), 15倍放大 → ❌排除
+
+  假说7: temperature塌缩
+    发现: temperature=-1.63, softplus≈0.18
+    但这只是症状不是根因 → 继续追
+
+  假说8: 4D head_dim对3000词表天生不够
+    实验: embed×20 → attention完美one-hot
+    但锐化后准确率仍0/11 → ❌排除(瓶颈不在attention)
+
+  假说9: gate饱和导致永久冻结
+    实验: verify_explosion.py
+    结果: gate饱和率51%, 未全饱和 → ❌排除
+
+  假说10: aux_s阶跃导致gate突变
+    实验: aux=1.0 vs aux=0.02 → gate变化量=0.0000
+    结果: 完全零影响 → ❌排除
+
+  假说11: explore无tanh导致二级放大
+    实验: 对比有/无tanh gate输出
+    结果: 几乎完全一样 → ❌排除
+
+  真相 (第36小时定位):
+    不是训练问题, 是评测问题。
+    eval_v21_quick.py的P6是256D, 训练是1024D。
+    load_state_dict strict=False → 静默跳过不匹配层 → 随机权重!
+    "考试2.1%" 是权重加载失败的随机输出, 不是模型真实能力。
+    修后: 15对E175训练集准确率78.6% ← 真实能力。
+
+
+三、sigmoid bias=2.0 — 一个参数值追了6小时 (6/24深夜)
+
+  现象: 所有模块E15梯度全部归零
+  grad: abc_to_gate=0.0000, sent_to_gate=0.0000, meta=0.0000...
+
+  追踪路径:
+  1. 加梯度诊断 → 发现E5正常, E10衰减, E15死亡
+  2. 检查梯度路径 → CE→P6✅ CE→P7✅ CE→gate❌
+  3. Gate链: explore→meta→abc_to_gate/sent_to_gate
+  4. 哪里断了? meta.sigmoid!
+
+  根因: TurboMeta bias=2.0
+    sigmoid(2.0) ≈ 0.88
+    梯度 = 0.88 × (1-0.88) = 0.106
+    每通过一次sigmoid, 梯度只剩10%
+    加上1024D explore三层衰减 → 到abc_to_gate/sent_to_gate时梯度≈0
+
+  修复: bias=0 (sigmoid≈0.5, 梯度=0.25最大)
+  验证: E5梯度全部复活, abcC ratio=0.183
+
+
+四、"AI说的一定对吗?" — 那些被固执验证推翻的建议
+
+  1. AI说"加梯度裁剪" — 用户: "扩了容量又剪梯度, 自相矛盾"
+     → 实验: 关掉裁剪, 跑通 → 容量够就不需要剪
+
+  2. AI说"去掉gate_base" — 用户: "控制层丢了我怎么管?"
+     → 辩论: 最终保留gate_base, 改abc_confidence
+
+  3. AI说"40M太大, 回退10M" — 用户: "也许是太小?"
+     → 辩论: 卡在双下降"上升期", 应该扩而不是缩
+
+  4. AI说"LayerNorm归一化" — 用户发现: 128D同值时方差=0→除零NaN
+     → 改tanh限幅, 再改384D拼接
+
+  5. AI说"SelfLR是问题" — 用户: 关掉也炸
+     → 验证: 不是SelfLR
+
+  6. AI说"gate饱和→永久冻结" — 用户: 跑验证
+     → 验证推翻: gate饱和率51%, 未全饱和
+
+
+五、统计
+
+  ├── 追过的假说: ~25个
+  ├── 被验证推翻: ~18个
+  ├── 确认为真实Bug: ~12个
+  ├── 执行过的回退: ~15次
+  ├── 双核辩论: 9轮
+  ├── 因为坚持跑验证而推翻的AI建议: 6次
+  └── 最终定位的"假2.1%"真相: 1个 (eval脚本维度不匹配)
+═══════════════════════════════════════════════════════════════
+
+六、V22时期 (ABCDE认知堆栈扩展)
+
+  BugV22-1: D/E层注入导致梯度全崩 — 数值范围问题 (2026续)
+    现象: 加ABC StageD(关系审查)/StageE(记忆)后, 训练E20-160不定崩,
+          CE突回5.0, explore/meta/gate全grad=0, abcB ratio爆到5.87(正常<0.05)
+    误判1: 以为注入系数太大 → 冷启动gain 0.1→0.01 → 无效, 只把崩溃推后
+    误判2: 以为gate窄桥(explore 384→512) → 回退3路 → 仍崩
+    根因: D/E输出(rd/me)数值范围太大 → 注入撑大ac_batch/gate_input →
+          meta的sigmoid饱和 → gate梯度死 → 连锁全网崩
+    修复: rd/me 球面归一化 F.normalize(dim=-1) → 单位向量
+          前向数值受控 + 反向梯度不冲击 → 可全量注入(0.1)不崩
+    验证: --sample 10, loss 6.98→0.0078, ok 74/74, E130全程不崩 ✅
+    教训: 新模块注入不是缩系数(冷启动只推后问题, 权重训大了照样冲),
+          而是球面归一化控数值范围 —— 同 ac_batch软归一化、P3-L的
+          F.normalize 一个哲学。"数值范围太大梯度承受不住"是根因。
+═══════════════════════════════════════════════════════════════

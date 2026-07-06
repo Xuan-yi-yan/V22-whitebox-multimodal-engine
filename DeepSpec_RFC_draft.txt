@@ -1,0 +1,266 @@
+RFC: White-Box Unified Multimodal Architecture as Reference for DeepSpec Speculative Decoding
+—— Spherical Normalization, 3-Tier Semantic Cache & Read-Write Head for Addressing DSpark's MoE Router Misalignment, Distribution Drift & Multi-Modality Integration
+
+================================================================
+1. Problem Context: The Deeper Challenges of Speculative Decoding in MoE Architectures
+================================================================
+
+DSpark (DeepSeek's speculative decoding training framework, recently open-sourced
+in DeepSpec) presents a concrete engineering setup for training and evaluating
+draft models. However, at the architectural level, several open challenges remain:
+
+(1) MoE Router Misalignment between Draft and Target.
+  When the draft model samples from a different latent distribution than the target
+  MoE model, the resulting router mismatch leads to cumulative rejection — a
+  phenomenon known as "rejection cascade." This is not merely a dtype precision issue
+  (bf16 vs. fp32 in logit sampling); it is fundamentally a distribution alignment
+  problem rooted in the hidden-layer numerical ranges of MoE routers.
+
+(2) Distribution Drift in Speculative Rejection.
+  As noted in DeepSpec issue #31, draft sampling and speculative rejection must operate
+  on identical distributions to guarantee unbiased output. However, hidden-state
+  numerical range inflation — especially in deeper MoE layers — can silently break this
+  equivalence, producing distribution divergence that is hard to detect and harder to
+  fix at scale.
+
+(3) O(N) Context Expansion and KV-Cache Bloat.
+  Long-context speculative decoding requires maintaining and referencing increasingly
+  large context windows. The standard approach — stacking more attention heads and
+  larger KV caches — scales poorly in both memory bandwidth and compute.
+
+(4) Multi-Modality Integration.
+  Current speculative decoding pipelines (including DSpark) are designed for
+  text-only input. Extending them to vision, audio, or other modalities typically
+  requires separate modality-specific models (e.g., ViT for vision, Whisper for audio),
+  creating engineering silos and preventing unified cross-modal speculative decoding.
+
+================================================================
+2. Proposed Reference Architecture: V22 White-Box Multimodal Engine
+================================================================
+
+I present a reference architecture — the V22 white-box multimodal cognitive engine —
+developed independently as a research project. It is a ~9.9M-parameter, fully
+interpretable (white-box) system that unifies text, vision, and audio through a
+single ABCDEF cognitive stack, trained on a single RTX 5070 (12GB). The full
+implementation is open-sourced.
+
+While V22 was not designed specifically for speculative decoding, several of its
+architectural mechanisms directly address the challenges identified in Section 1.
+The goal of this RFC is to present how these mechanisms work and to offer them as
+a reference for the DeepSpec team when considering architectural improvements to
+DSpark's speculative decoding pipeline.
+
+================================================================
+3. Key Architectural Mechanisms and Their Relevance to DSpark
+================================================================
+
+3.1 Spherical Normalization → Solving Distribution Drift & Router Misalignment
+
+We observed that adding new modules (e.g., a relation-review layer or memory
+read-write head) caused full-gradient collapse during training: CE would spike
+from ~2.0 back to 5.0, and all gate-path gradients (explore/meta/abc_to_gate/
+sent_to_gate) would decay to precisely zero.
+
+Root cause: the output values of new modules inflated the downstream numerical
+ranges, causing sigmoid saturation in the gate network — a classic "signal
+explosion → gradient death" cascade.
+
+The fix was deceptively simple but architecturally significant: all injected
+representations (relation vectors, memory embeddings, pixel embeddings, FFT
+embeddings) are forced onto the unit sphere via F.normalize(dim=-1). Cold-start
+gain reduction (0.1 → 0.01) only delayed the problem; spherical normalization
+solved it entirely.
+
+Relevance to DSpark: The same mechanism could stabilize numerical ranges between
+draft and target hidden states, reducing the distribution divergence that causes
+speculative rejection cascades.
+
+3.2 3-Tier Semantic State Cache (L1/L2/L3) → O(1) Context Compression
+
+Instead of expanding KV-cache, V22 uses an explicit semantic state memory with
+three tiers:
+
+  L1 (GPU hot, <1ms): sent_vec[256D] × last 50 turns, cosine retrieval
+  L2 (RAM warm, ~0.1ms): sent_vec[256D] × ~10,000 turns, with P3-attribute
+      Jaccard overlap filtering (0.4 weight) to disambiguate semantically-close
+      but structurally-different queries
+  L3 (Disk cold, unlimited): each turn persisted as JSON, loaded on demand
+
+The key insight: P7's sent_vec output is already a semantic vector — no external
+embedding model or vector database is needed. The read-write head decouples
+context from token sequence length, effectively compressing O(N) context into
+O(1) state retrieval.
+
+Relevance to DSpark: This could serve as an alternative to the standard KV-cache
+accumulation in long-context speculative decoding, reducing memory bandwidth
+pressure when the draft model needs to reference large context windows.
+
+3.3 Unified Multimodal Token → Removing Modality-Specific Silos
+
+V22 treats text, vision, and audio as structurally identical tokens:
+
+  Token = [Embedding 256D (spherical)] + [Attribute 384D]
+
+  • Text:   char_embed(char_id)  + P3 linguistic attributes     → 640D
+  • Vision: VisualEmbed(16×16 raw RGB, no ViT/CNN, spherical)   → 256D
+             + P3Vis (industrial-grade white-box visual features:
+             HSV histogram, HuMoments, GLCM, LBP, HOG, K-means) → 384D attr
+  • Audio:  AudioEmbed(raw FFT magnitude spectrum, no mel-filter) → 256D
+             + P3Aud (pitch, formant, loudness, zero-crossing,
+             spectral centroid, rhythm) → 384D attr (reserved,
+             current verification uses simulated FFT data)
+
+The engine (P7 → ABCDEF → P6) does not distinguish token modalities. The token is
+just a 640D vector — whether it came from a character, a pixel grid, or an FFT
+spectrum. No modality-specific branch, no separate model.
+
+Relevance to DSpark: This architecture points toward unified cross-modal
+speculative decoding — imagine a draft model that uses audio cues to boost
+confidence on text tokens, or visual context to guide language generation.
+Extending DeepSpec's draft model training to multi-modal input would be a
+significant architectural advancement.
+
+Current status: Three-modality data flow verified. Text training converges to
+loss 0.0001 (auto-stop). Visual: "image(apple) → predict '苹果'" correctly.
+Audio: "FFT → predict '高音'" data flowing. Full production integration is
+future work; the existing verification demonstrates architectural feasibility
+rather than production readiness.
+
+================================================================
+4. P3AttributeStack & Memory Read-Write Head: A White-Box Approach to Semantic State
+================================================================
+
+V22's P3 Attribute Stack is a zero-parameter rule engine that extracts explicit
+linguistic attributes (word class, semantics, syntax, emotion, logic relations,
+tense, person, etc.) into a structured 128-dimensional vector. Combined with the
+E-stage memory read-write head — which writes (sent_vec, memory_embedding) pairs
+into the 3-tier cache and retrieves the top-1 cosine match for each new query —
+this provides an explicit, inspectable semantic state that persists across sessions
+(persisted to file, loadable on restart).
+
+The write head requires no additional training — P7 already produces the sent_vec
+as a byproduct of its forward pass. The read head uses a hybrid retrieval score:
+0.6 × cosine(sent_vec_query, sent_vec_cache) + 0.4 × Jaccard(attr_set_query, attr_set_cache).
+
+Relevance to DSpark: In speculative decoding, the draft model's "confidence" in
+its proposals is largely implicit (softmax probability). Adding an explicit semantic
+state inspection layer — even a lightweight one — could provide an orthogonal
+signal for adaptive verification scheduling (e.g., reduce verification depth
+when the semantic state indicates high coherence).
+
+================================================================
+5. Empirical Evidence
+================================================================
+
+Verified on RTX 5070 12GB (single consumer GPU). The following results are from
+small-scale verification (not production training), intended to demonstrate
+mechanism feasibility rather than production performance:
+
+• Text training: --sample 10, loss 6.98 → 0.0001 (auto-stop), no gradient collapse
+• Visual: 28 image-label pairs, "image(apple) → predict: 苹果" correct after 30 epochs
+• Audio: simulated FFT data (low/mid/high tones), "FFT → predict: 高音" data flow verified
+• Full pipeline: text → vision → audio, all three modalities flow through the same engine
+• Spherical normalization: eliminated recurring gradient death (previously E20-160 crash)
+
+Code & reproduction: https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine
+
+Hardware constraints: 12GB VRAM inevitably limits this work to small-scale
+verification. Larger-scale validation, production integration, and full
+multi-modal training remain future work and would require appropriate hardware.
+The current results should be interpreted as architectural proof-of-concept
+rather than production benchmarks.
+
+================================================================
+6. Open Discussion & Invitation for Feedback
+================================================================
+
+This RFC presents a white-box empirical study, not a proposal for immediate
+integration. The V22 engine is an independent research project that happens to
+address several architectural challenges relevant to speculative decoding in
+MoE settings.
+
+I am not asking for code merge. I am offering this work as a reference for the
+DeepSpec team and community — if any of the mechanisms described above
+(spherical normalization for numerical stability, 3-tier semantic cache for
+context compression, unified multimodal token representation) resonate with
+challenges you are facing in DSpark or DeepSpec, I would be happy to discuss
+further, provide additional implementation details, or collaborate on adapting
+relevant components.
+
+Questions for the DeepSpec team and community:
+
+(1) Would spherical normalization be a useful regularization mechanism for
+    draft-target hidden state alignment in DSpark?
+
+(2) Is there interest in exploring semantic-state-based verification scheduling
+    (using explicit attribute/state inspection) alongside probability-based
+    speculative rejection?
+
+(3) For multi-modal speculative decoding: is the unified token representation
+    approach (text/vision/audio → identical vector structure) a direction
+    DeepSpec might explore, or are modality-specific encoders preferred?
+
+Open to feedback, criticism, and collaboration.
+
+================================================================
+7. Reference Hooks — V22 Mechanisms Possibly Relevant to Speculative Decoding
+================================================================
+
+This section is deliberately informal and suggestive, not prescriptive.
+None of the following has been tested in a speculative decoding pipeline
+(hardware: single RTX 5070, 12GB). I am simply pointing out where my
+independent architecture has striking structural overlap with known
+challenges in draft-model training, attention caching, and multi-modal
+speculation. The community can decide whether any of these hooks are worth
+pursuing.
+
+(1) Spherical normalization → Draft-target hidden-state alignment.
+  V22's F.normalize approach prevents numerical-range escalation between
+  newly injected layers (D/E) and the existing engine. The same mechanism
+  could regularize draft-target hidden-state divergence in DSpark without
+  additional hyper-parameter tuning. Unverified on spec-dec, but addresses
+  structurally the same problem DSpark faces with MoE router misalignment.
+
+(2) Explicit attribute stack → Draft confidence inspection.
+  P3's 126-slot zero-parameter rule engine provides an externally readable
+  "confidence vector" for every token (logic relations, emotion, semantic
+  category, syntactic position, etc.). This could serve as an orthogonal
+  signal source for adaptive verification scheduling — e.g., when the
+  attribute stack detects low coherence (logical inconsistency, high
+  entropy across syntax slots), the system could trigger deeper verification
+  even if softmax probability appears high.
+
+(3) 3-tier semantic memory → Alternative to KV-cache for long context.
+  Stage E compresses O(N) context into O(1) retrieval via cosine search
+  over sent_vec + P3 attribute Jaccard disambiguation. For long-context
+  speculative decoding (e.g., document-level draft generation), this offers
+  a context retrieval path that does not require maintaining the full KV
+  cache chain. The persistent file format (V22_mem.pt) enables cross-session
+  memory — speculative decoding across sessions is unexplored territory,
+  but the storage primitive exists.
+
+(4) Unified multi-modal token → Cross-modal speculative decoding.
+  Because text, vision, and audio tokens share the same 640D structure,
+  cross-modal inference is architecturally feasible: visual context can
+  modulate draft token confidence, audio cues can inform text generation,
+  text-to-image draft models can reuse the same engine. This is a
+  speculative direction (not verified with DSpark), but the token-level
+  architecture imposes no modality barrier.
+
+(5) ABC' additive injection → Safe, cold-start-safe feature expansion.
+  V21.1 introduced ABC' pressurization with a deliberate architectural
+  pattern: new modules inject via additive fusion (not concatenation),
+  with near-zero initialization (gain=0.01), and spherical normalization
+  to prevent signal disruption. For DSpark, this pattern could be applied
+  when adding new feature extractors or draft refinement components without
+  retraining the entire pipeline.
+
+These are hooks, not claims. I invite the community — particularly DSpark
+maintainers and collaborators — to examine whether any of these mechanisms
+merit further investigation or integration.
+
+---
+RFC Author: Xuan-yi-yan (github.com/Xuan-yi-yan)
+V22 Engine: https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine
+Related: vLLM PR #47491 (hybrid KV cache fix), vLLM issue #43090 (root-cause analysis)
+================================================================
