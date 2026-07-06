@@ -744,7 +744,7 @@ current_bs = BATCH_SIZE
 
 # ═══════════════════ V22 视觉: 图→文 (像素球面 + 余弦对比) ═══════════════════
 import cv2, glob
-sys.path.insert(0, "C:/ai/P3_vision")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "P3_vision"))
 from p3vis import P3Vis as _P3VisCls
 _p3vis = _P3VisCls()
 
@@ -765,7 +765,9 @@ def _img_pixels(img, grid=16):
 
 _VLABEL = {"apple": "苹果", "sun": "太阳"}
 _vpairs = []
-for _d in ["C:/ai/agent_demo/test_images", "C:/ai/agent_demo/test3"]:
+_img_dirs = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_images"),
+             os.path.join(os.path.dirname(os.path.abspath(__file__)), "test3")]
+for _d in _img_dirs:
     for _f in glob.glob(os.path.join(_d, "*.bmp")):
         _nm = os.path.basename(_f).lower()
         for _k, _lb in _VLABEL.items():
