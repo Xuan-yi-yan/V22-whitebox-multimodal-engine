@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Jinqi Wei - AI Architect</title>
+<style>
+body{font-family:"Segoe UI",Arial,sans-serif;max-width:900px;margin:30px auto;color:#1a1a1a;line-height:1.7;font-size:14px}
+h1{font-size:22px;border-bottom:2px solid #1a56db;padding-bottom:8px;color:#1a56db}
+h2{font-size:16px;margin-top:18px;color:#1e40af;border-left:3px solid #1a56db;padding-left:8px}
+h3{font-size:14px;margin:8px 0 4px 0;color:#333}
+ul{margin:4px 0 4px 16px;padding:0}
+li{margin:2px 0}
+.sk{display:inline-block;background:#dbeafe;padding:1px 8px;margin:1px;border-radius:3px;font-size:12px;color:#1e40af}
+.info{color:#666;font-size:13px}
+</style></head><body>
+
+<h1>Jinqi Wei — AI Architect / LLM Inference & Multimodal Cognitive Systems</h1>
+<p class="info">📧 1503163696@qq.com &nbsp;|&nbsp; 📞 15525705258 &nbsp;|&nbsp; 📍 Beijing, China &nbsp;|&nbsp; Available Immediately</p>
+<p class="info">🔗 GitHub: github.com/Xuan-yi-yan &nbsp;|&nbsp; vLLM Contributor &nbsp;|&nbsp; DeepSeek-V3 Community &nbsp;|&nbsp; DeepSpec RFC #52</p>
+
+<div style="margin:8px 0">
+<span class="sk">Python</span><span class="sk">PyTorch</span><span class="sk">vLLM Contributor</span><span class="sk">KV Cache</span><span class="sk">Hybrid Model Alignment</span><span class="sk">Prefix Caching</span><span class="sk">White-Box Architecture</span><span class="sk">Cross-Attention</span><span class="sk">RMSNorm</span><span class="sk">Gating System</span><span class="sk">Hierarchical Adam</span><span class="sk">Gradient Diagnostics</span><span class="sk">NaN Rollback</span><span class="sk">Multi-Agent</span><span class="sk">LLM API Integration</span><span class="sk">Mixed Precision</span><span class="sk">Multimodal Unified Architecture</span><span class="sk">Spherical Normalization</span><span class="sk">ABCDEF Cognitive Stack</span><span class="sk">Speculative Decoding</span><span class="sk">Claude/Gemini Benchmark</span>
+</div>
+
+<h2>1. vLLM / vLLM-Ascend Open-Source Contributions (2026.07, 85K stars)</h2>
+<h3>The world's largest LLM inference engine + Huawei Ascend ecosystem | 4 PRs/RFCs | Verified on RTX 5070</h3>
+<ul>
+<li><b>vLLM PR #47491</b>: Fixed hybrid model Mamba group zero-hit prefix cache truncation. 5-line fix, 9 reviewers (incl. WoosukKwon, vLLM founder)</li>
+<li><b>vLLM-Ascend PR #11314</b>: Progressive alignment algorithm fix for DeepSeek V4 MTP 32K→16K cache truncation. _progressive_align_steps + early-exit guard, CI all green</li>
+<li><b>vLLM-Ascend RFC #11356</b>: PD-disaggregated Mamba state independent channel routing architecture proposal. HybridTransferTracker control/data plane decoupling + min() graceful degradation + Feature Flag</li>
+<li><b>vLLM RFC #45702</b>: DAG + CoW solution for Mamba concurrent prefix sharing. No CUDA kernel modifications required. Physically verified on RTX 5070</li>
+<li><b>vLLM #43090 Root-Cause Analysis</b>: Traced granite hybrid model prefix-caching output divergence — a correctness bug undetected by core maintainer njhill. 4-link evidence chain pinpointing has_initial_states misjudgment. Published independent repro script (gist) + transparently disclosed own PR boundary</li>
+<li><b>DeepSpec RFC #52</b>: Submitted V22 white-box architecture reference document to DeepSeek's official speculative decoding codebase — spherical normalization, 3-tier semantic cache, unified multimodal token as architectural reference for DSpark. 5 open adoption hooks for community</li>
+</ul>
+
+<h2>2. DeepSeek-V3 Community Technical Contributions (2026.06, 104K stars)</h2>
+<h3>Officially featured in June Monthly Community Report — "Researchers Provided Key Diagnoses and Solutions" section</h3>
+<ul>
+<li><b>Graviton Anchors</b>: Concept adopted as formal terminology by AmoebaFPS independent research lab, formalized as GDI mathematical framework + PyTorch MVS implementation</li>
+<li><b>Attention Lock-in Diagnosis</b>: #1125 identified inference-time suffix constraints causing meta-signal contamination of content-signal. Root cause adopted as diagnostic paradigm by community (#1463 citation)</li>
+<li><b>Safety Anchor Injection</b>: #1368 proposed "Safety is a gate, not a weight" — three inference-time injection schemes (Anchor Injection / Logit Bias / CoT Check)</li>
+<li><b>Semantic Pre-annotation Middleware</b>: #1420 proposed KV-pool semantic indexing. Validated in production by HeartFlow system (3 months data, 40% token reduction)</li>
+<li><b>AmoebaFPS Public Response</b>: "Most significant insight received... parameter-space bottleneck is the missing piece." GDI framework adopted to formalize my Graviton Anchors concept</li>
+<li><b>Five issue root-cause analyses</b>: #5083(Qwen) + #1368 + #1420 + #1125 + #1460, spanning five dimensions (OS→Security→Attention→Reasoning→Training)</li>
+</ul>
+
+<h2>3. V21→V22 White-Box Multimodal Cognitive Engine (Independent Development, 2026.05-07)</h2>
+<h3>Extended from V21 single-modality text engine to V22 three-modality (Text/Vision/Audio) unified architecture — a single ABCDEF cognitive stack handles three modalities, with signals unified as "integer/frequency → Spherical Embedding + Attributes", rejecting per-modality siloed models (Whisper/ViT). 12+ modules, ~9.9M parameters, fully interpretable. Trained on single RTX 5070 12GB. The underlying layered memory management, gradient diagnostics, and NaN protection mechanisms are directly transferable to large-scale distributed training and inference engine stability design.</h3>
+
+<h3>Architecture</h3>
+<ul>
+<li><b>CharEmbed</b>: ~3000 chars × 256D, orthogonal initialization — each character maps to an independent direction</li>
+<li><b>P3 AttributeStack</b>: Zero-parameter rule engine (14 sub-modules), 128D × 126 slots across 3 hierarchical layers (word-class/semantics/syntax/emotion/logic/modifier/domain/style)</li>
+<li><b>P7 CrossSentence</b>: 16-head × 16D, Q=A tokens, K/V=full vocabulary. <b>RMSNorm Q/K anti-explosion</b>, learnable temperature</li>
+<li><b>P3-L AttributeLinkage</b>: 312 heads / 23 groups, independent per-group attention (anti-contamination) with cross-modal groups</li>
+<li><b>ABC Tri-Stage Logic Review</b>: Stage A (20-class structural decision) → Stage B (384D content) → Stage C (48D tone). Reviews attribute coherence</li>
+<li><b>Gate (3-channel parallel)</b>: base/abc/sent signals each 128D independent channel → Explore → Meta → Gate[256] modulates P6</li>
+<li><b>P6 Tied-Weight Decoder</b>: 128-head × Linear(256,256), tied weights — parameters reduced from ~40M to 8.6M</li>
+<li><b>ABC' Pressurization (V21.1)</b>: Post-P3-L pressurization module (128→192→128), additive injection into P6, cold-start safe (gain=0.01)</li>
+</ul>
+
+<h3>V22 Multimodal Extension (2026.07, 3-Modality Milestone)</h3>
+<ul>
+<li><b>Unified Token Engine (extension, not rewrite)</b>: Text (char_embed), Vision (VisualEmbed, 16×16 raw RGB → 256D spherical), Audio (AudioEmbed, raw FFT spectrum → 256D spherical) — unified as "256D spherical Embed + Attributes" isomorphic tokens. Single P7→ABC→P6 stack handles all three modalities. No modality-specific branches.</li>
+<li><b>ABCDEF Hexa-Cognitive Stack</b>: Extended ABC with D (Relation Review: relations ARE P3 attributes, ABC reviews coherence, no GNN) + E (Memory Read-Write Head: sent_vec cosine retrieval + P3 attribute Jaccard hybrid scoring + file-persisted 3-tier cache). Attribute dimension: 128→384 (language 128 + vision 256)</li>
+<li><b>Spherical Normalization Root-Cause Fix</b>: Diagnosed crash chain: "numerical range overflow → gradient shock → sigmoid saturation → gate gradient death → full-network collapse." Root-cured via F.normalize unit-sphere constraint — cold-start gain reduction only delayed the inevitable.</li>
+<li><b>Cross-Modal Contrastive Loss Directionality</b>: Image/Audio→Text uses cosine similarity. Text→Image/Audio uses Pearson correlation (requires numerical linear correspondence)</li>
+<li><b>3-Modality Verification</b>: Text: loss→0.0001 auto-stop. Vision: "image(apple)→predict:苹果" correct. Audio: "simulated FFT→text" data flowing. All through a single engine.</li>
+</ul>
+
+<h3>Training System</h3>
+<ul>
+<li><b>7 Independent Adam Optimizers + Hierarchical Learning Rates</b>: Precisely calculated from gradient/parameter ratios — P7×0.05 (97% suppression), Gate×5.0 (5x boost), ABC×3.0</li>
+<li><b>5-Layer Intelligent Safeguard</b>: ① ac_batch real-time detection ② CE single-spike clamp ③ aux_scale progressive self-heal (5%/step) ④ NaN auto-rollback (from best.pt) ⑤ loss&lt;0.0001 auto-stop</li>
+<li><b>Gradient Diagnostic System</b>: Per-module grad/param ratio real-time tracking</li>
+<li><b>Data Engineering</b>: Greedy coverage sampling (1500 pairs = 89% vocabulary), dirty data filtering (4360 pairs / 8.3%), 52K full analysis</li>
+</ul>
+
+<h3>Bug Hunter</h3>
+<ul>
+<li>25+ hypothesis tests → 18 disproved → 12 confirmed real bugs → <b>Discovered "Fake 2.1%": eval script dimension mismatch</b></li>
+<li><b>Sigmoid bias dead gradient</b>: bias=2.0 → gate path dead in 5 epochs, 6-hour root-cause chase</li>
+<li>36-hour "Operation Dawn": 9 rounds of dual-AI debate + 60 code modifications + 4 architecture upgrades</li>
+</ul>
+
+<h2>4. Dual-Agent Debate Audit System (2026.06)</h2>
+<ul>
+<li><b>Architecture</b>: DeepSeek (read-only analysis) + Qwen (read-write review), auto debate loop (max 5 rounds), convergence detection. Applied to V22 architecture review: Claude-Opus-4.5 vs Gemini-2.5-Pro cross-model debate.</li>
+<li><b>7 Tools</b>: read_file / search_files / search_content / list_dir / web_fetch / run_cmd / write_file</li>
+<li><b>Permission Control</b>: DeepSeek readonly (write/run_cmd hidden), Qwen full permissions. JSON+XML dual-format tool-call parsing</li>
+<li><b>Track Record</b>: 9 debate rounds located 6 P0 bugs, including eval script dimension mismatch (accuracy 2.1%→78.6% truth)</li>
+</ul>
+
+<h2>5. Black-Box V2 Multi-Tuple Architecture (2026.06, 3h from zero to validation)</h2>
+<ul>
+<li>Trainable N-gram character tuples replacing rule engine — "which characters frequently appear together" learned by the model</li>
+<li>10M parameters, 1500 pairs CE normal descent (6→2.2), architecture validation passed</li>
+</ul>
+
+<h2>Core Skills</h2>
+<div>
+<span class="sk">White-Box Architecture from Zero</span><span class="sk">vLLM/KV Cache</span><span class="sk">Hybrid Model Alignment</span><span class="sk">Attention Mechanism</span><span class="sk">Gradient Diagnostics</span><span class="sk">Bug Hunter (25 hypotheses)</span><span class="sk">Hierarchical Optimizers</span><span class="sk">NaN Rollback</span><span class="sk">Multi-Agent Systems</span><span class="sk">Full-Stack Independent Dev</span><span class="sk">Technical Writing (220+ docs)</span><span class="sk">Speculative Decoding</span>
+</div>
+
+<div style="margin-top:20px;padding-top:10px;border-top:1px solid #ddd;color:#999;font-size:12px">
+<p>Attachments: Technical Capability & Achievement Document | V21 Bug Hunter Full Record | V21 36-Hour Operation Dawn Timeline | Dual-Agent Debate System Architecture & Track Record</p>
+</div>
+
+</body></html>
