@@ -4,6 +4,14 @@ Here's my technical feedback from the test credits — I ran a cross-model dual-
 debate benchmark on CometAPI, pitting Claude Opus 4.5 against Gemini 2.5 Pro on a
 real architecture review task. The results exceeded expectations.
 
+Note on model availability: I initially attempted GPT-5.5-Pro and Grok-4 but
+encountered expected limitations — GPT-5.5-Pro doesn't expose the v1/chat/completions
+endpoint on my account, and Grok-4 returned "model not found." This is not urgent to
+resolve. Claude Opus 4.5 + Gemini 2.5 Pro alone already demonstrated the key value
+proposition of CometAPI — stable cross-model orchestration between Anthropic and Google
+models on a single API layer. I'll test additional models if/when access is expanded,
+but the current results are sufficient to validate the platform.
+
 === What I tested ===
 
 Dual-model debate (4 rounds): Claude Opus 4.5 (A-side, architecture defense) vs
