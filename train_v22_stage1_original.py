@@ -263,9 +263,15 @@ p3l = P3L_AttributeLinkage(attr_dim=384, num_attr_values=500, enable_vision=True
 p7_input_proj = nn.Linear(640, 256, bias=False).to(DEVICE)  # A256D+P3(384D=语言128+视觉256)→256D
 
 # ════════════════════════ Master Gate (5子gate→5维温控) ════════════════════════
-class MasterGate(MasterGate_vMF):
-    """V22升级: vMF版MasterGate — 5子gate→5路温控, 球面偏好方向"""
-    pass
+class MasterGate(nn.Module):
+    """总Gate: 5个子gate → 5路温控(0-1)"""
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(5, 32), nn.GELU(), nn.Linear(32, 32), nn.GELU(), nn.Linear(32, 5))
+        for l in self.net:
+            if isinstance(l, nn.Linear): nn.init.xavier_uniform_(l.weight, gain=0.1); nn.init.zeros_(l.bias)
+    def forward(self, sub_losses):  # sub_losses: [5] — P7, A, B, C, cos
+        return torch.sigmoid(self.net(sub_losses))  # [5] 每路0-1温控
 
 master_gate = MasterGate().to(DEVICE)
 opt_master = torch.optim.Adam(master_gate.parameters(), lr=args.lr * 0.5)
@@ -392,15 +398,9 @@ class TurboExplore(nn.Module):
             if isinstance(l, nn.Linear): nn.init.xavier_uniform_(l.weight, gain=0.1); nn.init.zeros_(l.bias)
     def forward(self, x): return self.net(x)
 
-# V22 vMF升级: TurboMeta球面门控
-from v22_vmf_modules import TurboMeta_vMF, MasterGate_vMF, P7Gate_vMF,\
-    SphericalSelfOrganizingLoss, MutualInformationPenalty,\
-    KappaPhaseScheduler, MomentumExchangePool, PCACurvatureProxy,\
-    LocalCurvatureEstimator, LocalBettiMonitor, SphericalVoronoiProbe
-
-class TurboMeta(TurboMeta_vMF):
-    """V22升级: vMF球面门控"""
-    pass
+class TurboMeta(nn.Module):
+    def __init__(self, dim=256): super().__init__(); self.bias = nn.Parameter(torch.zeros(dim))
+    def forward(self, x): return torch.sigmoid((self.bias + x) / 10.0)  # 压缩输入, 防饱和
 
 explore = TurboExplore().to(DEVICE)
 meta = TurboMeta().to(DEVICE)
