@@ -1,7 +1,8 @@
 ════════════════════════════════════════════════════════════════
-  V22 白盒认知引擎 — 三层架构终极全貌
-  时间: 2026-07-06 | 从 V21 单模态文本引擎演进而来(扩展, 非重构)
+  V22.1 白盒认知引擎 — 球面门控架构升级
+  时间: 2026-07-09 | V22基础上控制层vMF升级(16方案落地, 架构结构不变)
   原则: "扩大反而是真效率" — 维度不留缺, 位置先占稳, 控制层同步扩
+	  升级源: 6模型×24轮环形接力辩论 → 16个架构强化方案(v22_vmf_modules.py)
 ════════════════════════════════════════════════════════════════
 
 
@@ -126,8 +127,9 @@
       abc:  abc_to_gate(ac_batch, 48→128)   — ABC语气控制
       sent: sent_to_gate(sv_batch, 256→128)  — P7语义信号
     拼接: [base 128 ∥ abc 128 ∥ sent 128] ∥ rd_to_gate(rd 384→128, 预留)
-    → TurboExplore(384→512→512→256) → TurboMeta(bias[256] + 输入, ÷10防饱和)
-    → Sigmoid → gates[256] → 调制P6 encoder
+    → TurboExplore(384→512→512→256) → TurboMeta_vMF(dim=256, μ+κ可学习, 球面偏好方向)
+    → vMF球面门控: gate_i = sigmoid(κ_i · cos_sim(x_norm, μ_i) + bias_i)
+	    → gates[256] → 调制P6 encoder (κ可学习, 球面拓扑内化)
 
   Master Gate [0.4K]
     5-6子损失聚合 → 动态温控(0-1) → 各损失自动平衡
@@ -236,7 +238,7 @@
   abc_to_sent:   33K (128→256)
   me_to_sent:    98K (384→256)
   P6:            8,586K (128头, tied weights)
-  Master Gate:   0.4K (5→32→32→5, V22回退5路)
+  Master Gate_vMF: ~1K (MLP+vMF, 球面偏好方向)
   ─────────────────────────
   总计:          ~11.2M
 
@@ -264,3 +266,43 @@
   文件: train_v22_stage1.py (主训练脚本), P3_vision/p3vis.py,
         P3_vision/visual_token.py, hybrid_apc_43090_repro.py (vLLM根因复现)
 ════════════════════════════════════════════════════════════════
+
+
+
+════════════════════════════════════════════════════════════════
+  V22.1 控制层升级 — 24轮环形接力辩论产出
+  原则: 架构结构不动, 只升级控制逻辑层。checkpoint兼容, 可增量训练。
+════════════════════════════════════════════════════════════════
+
+  球面几何增强:
+    TurboMeta_vMF — sigmoid→vMF球面门控, μ+κ可学习, 无需/10压缩
+    P7Gate_vMF — P7内部word/sent gate → vMF版
+    MasterGate_vMF — 5路温控 → 球面偏好方向
+
+  微头自组织:
+    KappaPhaseScheduler — 探索期(κ≈2)→结晶期(κ≈10)双阶段调度
+    CompetitiveCrystallization — 高密度区赢家结晶, 输家迁移
+    温度退火 — 早期高温探索→后期低温专精
+
+  拓扑监控:
+    LocalBettiMonitor — β₀实时追踪, 恶性崩溃vs良性重组, O(k log n)
+
+  7-Adam协调:
+    MomentumExchangePool — 共享曲率预警, 独立决定采纳, 松耦合
+    PCACurvatureProxy — 动量轨迹PCA方差比, 坍缩预警可计算
+    LocalCurvatureEstimator — 短/长窗口多尺度分析, 自适应阈值
+
+  白盒探针:
+    AdaptiveProbeSet — 50球面探针动态重分布高信息区域
+    ActiveExperimentProbe — 受控扰动, 微头→输出因果矩阵C
+
+  反冗余:
+    SphericalSelfOrganizingLoss — 熵调制斥力, 过近微头对排斥
+    MutualInformationPenalty — 余弦相似度代理, 高冗余对惩罚
+
+  球面监控:
+    SphericalVoronoiProbe — 312微头功能分化可视化, 覆盖熵度量
+
+  文件: C:/ai/v22_vmf_modules.py (16个模块)
+         C:/ai/train_v22_stage1.py (已打补丁: TurboMeta+MasterGate→vMF)
+         备份: train_v22_stage1_original.py
