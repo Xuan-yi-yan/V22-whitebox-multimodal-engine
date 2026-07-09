@@ -1,0 +1,14 @@
+Anson,
+
+Got it — 20% below official pricing across the board, that's clear. Makes my earlier credit-request pitch unnecessary, which is honestly a better outcome for everyone.
+
+Three things:
+
+1. The cookbook (github.com/cometapi-dev/cometapi-cookbook) — will go through it. If there's appetite, I have a concrete example for it: the 24-round cross-model relay debate I just ran. Six models passing compressed architectural insights in a ring format, 30 sequential API calls without a single disconnection. Claude Opus ↔ Gemini ↔ Sonnet ↔ DeepSeek ↔ Qwen all on one endpoint. Full logs, scripts, and outputs are at github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine. The relay format itself is a stronger demo of CometAPI's cross-model orchestration than any synthetic benchmark — happy to write it up as a cookbook entry if that's useful.
+
+2. Test credits received: E9CA42bb8ECB49E3A9AA1417B119C80B737A4F0D7D234B128A731D765722D920 — thanks. I'll put it toward scaling the relay to more models or deeper rounds.
+
+3. No further credit requests from my side. The default pricing works.
+
+—
+Xuan-yi-yan
