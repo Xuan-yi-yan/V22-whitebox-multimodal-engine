@@ -25,11 +25,11 @@ li{margin:2px 0}
 <h2>1. vLLM / vLLM-Ascend 开源贡献 (2026.07, 85K stars)</h2>
 <h3>全球最大LLM推理引擎 + 华为昇腾生态 | 4个PR/RFC | RTX 5070物理验证</h3>
 <ul>
-<li><b>vLLM主仓库 PR #47491</b>: 修复hybrid模型Mamba组零命中导致prefix cache截断，5行修复，9位reviewer(含WoosukKwon/vLLM创始人)</li>
+<li><b>vLLM主仓库 PR #47491</b>: 发现并根因定位hybrid KV cache正确性bug（Mamba组miss时静默损坏attention缓存命中）。提出最小化coordinator层守卫修复；维护者随后采纳该问题并以更全面的retention层方案完成生产级修复(#47782, njhill)。Bug发现与根因分析被确认并解决。</li>
 <li><b>vLLM-Ascend PR #11314</b>: Progressive alignment算法修复DeepSeek V4 MTP 32K→16K缓存截断，_progressive_align_steps + 早退守卫，CI全绿</li>
 <li><b>vLLM-Ascend RFC #11356</b>: PD分离下Mamba状态独立通道路由架构提案，HybridTransferTracker控制面与数据面解耦 + min()优雅降级 + Feature Flag</li>
 <li><b>vLLM RFC #45702</b>: DAG + CoW方案解决Mamba并发前缀共享，不改CUDA kernel，在RTX 5070上物理验证通过</li>
-<li><b>vLLM #43090 根因分析</b>: granite hybrid模型prefix caching下cached vs uncached输出发散——4环证据链定位has_initial_states误判(Core maintainer njhill未发现的正确性bug)，附带独立复现脚本(gist) + 主动坦诚自己PR边界</li>
+<li><b>vLLM #43090 根因分析</b>: 定位hybrid模型prefix caching输出发散——4环证据链锁定has_initial_states边界条件（Mamba收到num_computed_tokens > 0误以为有初始状态，实则没有→静默数据损坏）。附带独立复现脚本。根因分析直接促成后续生产级修复 #47782 (njhill)。</li>
 <li><b>DeepSpec RFC #52</b>: 向DeepSeek官方投机解码库提交V22白盒架构参考文档——球面归一化/三层语义缓存/统一多模态token作为DSpark的架构参考，5个开放钩子供社区采纳</li>
 </ul>
 
