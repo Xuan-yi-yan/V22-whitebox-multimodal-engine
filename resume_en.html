@@ -22,11 +22,11 @@ li{margin:2px 0}
 <h2>1. vLLM / vLLM-Ascend Open-Source Contributions (2026.07, 85K stars)</h2>
 <h3>The world's largest LLM inference engine + Huawei Ascend ecosystem | 4 PRs/RFCs | Verified on RTX 5070</h3>
 <ul>
-<li><b>vLLM PR #47491</b>: Fixed hybrid model Mamba group zero-hit prefix cache truncation. 5-line fix, 9 reviewers (incl. WoosukKwon, vLLM founder)</li>
+<li><b>vLLM PR #47491</b>: Discovered and root-caused hybrid KV cache correctness bug (Mamba group miss silently corrupting attention cache hits). Proposed minimal coordinator-level guard fix; maintainer subsequently adopted the issue with a comprehensive retention-layer solution (#47782, njhill). Bug discovery and root cause analysis acknowledged and addressed in production.</li>
 <li><b>vLLM-Ascend PR #11314</b>: Progressive alignment algorithm fix for DeepSeek V4 MTP 32K→16K cache truncation. _progressive_align_steps + early-exit guard, CI all green</li>
 <li><b>vLLM-Ascend RFC #11356</b>: PD-disaggregated Mamba state independent channel routing architecture proposal. HybridTransferTracker control/data plane decoupling + min() graceful degradation + Feature Flag</li>
 <li><b>vLLM RFC #45702</b>: DAG + CoW solution for Mamba concurrent prefix sharing. No CUDA kernel modifications required. Physically verified on RTX 5070</li>
-<li><b>vLLM #43090 Root-Cause Analysis</b>: Traced granite hybrid model prefix-caching output divergence — a correctness bug undetected by core maintainer njhill. 4-link evidence chain pinpointing has_initial_states misjudgment. Published independent repro script (gist) + transparently disclosed own PR boundary</li>
+<li><b>vLLM #43090 Root-Cause Analysis</b>: Traced hybrid model prefix-caching output divergence — correctness bug undetected by core maintainer. 4-link evidence chain pinpointing has_initial_states boundary condition (Mamba receives num_computed_tokens > 0, believes it has initial state, but doesn't). Published standalone repro script. Root cause analysis directly informed subsequent production fix #47782 (njhill).</li>
 <li><b>DeepSpec RFC #52</b>: Submitted V22 white-box architecture reference document to DeepSeek's official speculative decoding codebase — spherical normalization, 3-tier semantic cache, unified multimodal token as architectural reference for DSpark. 5 open adoption hooks for community</li>
 </ul>
 
