@@ -1,12 +1,37 @@
-# V22 White-Box Multimodal Cognitive Engine
+# V22.1 White-Box Multimodal Cognitive Engine
 
-**∼9.9M params, fully interpretable. Text / Vision / Audio — one engine. Single RTX 5070.**
+**~11M params. Text / Vision / Audio — one engine. ABCDEF cognitive stack. Spherical vMF gating. Single RTX 5070 12GB.**
+
+> vLLM Contributor | Found & root-caused hybrid KV cache correctness bug (#43090 → #47782) | Active PR: scheduler fix #48195
 
 ```bash
 git clone https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine.git
-cd V22-whitebox-multimodal-engine
-python run_demo.py        # --sample 10, 3-modality quick verify
 ```
+
+---
+
+## 📂 Repo Directory
+
+| File | What |
+|------|------|
+| `V22_架构终极全貌_2026-07-06.txt` | V22.1 architecture doc (spherical gate upgrade) |
+| `v22_vmf_modules.py` | 16 relay debate proposals: vMF gates, κ scheduler, topology, 7-Adam coord, probes, anti-redundancy |
+| `v22_vmf_gate.py` | vMF vs sigmoid gate benchmark |
+| `train_v22_stage1.py` | Training script (vMF patched) |
+| `train_v22_stage1_original.py` | Original backup |
+| `v22_quick_test.py` | 15-sample vMF gate validation (CE 3.87→0.002) |
+| `v22_grad_diag.py` | Per-module gradient diagnostic |
+| `v22_real_grad_diag.py` | Real-size 2.68M param gradient flow test |
+| `v22_emotion_data.py` | Emotion dialogue dataset generator (480 samples) |
+| `v22_emotion_train.py` | Emotion-conditioned dialogue training |
+| `v22_relay_debate_24r.py` | 24-round relay debate script (6 models × 4 rounds) |
+| `v22_audit_six_models.py` | 6-model parallel architecture audit |
+| `relay_r*.txt` | 30 relay debate output files |
+| `audit_r*.txt` | 18 audit output files |
+| `multi_model_audit_announcement.txt` | Full audit announcement |
+| `patch_v22_vmf.py` | Automated vMF patching script |
+| `resume_en.html` | English resume |
+| `简历_卫锦旗_详细版.html` | Chinese resume |
 
 ---
 
@@ -69,6 +94,22 @@ READ:  query_sent_vec ─cosine→ top-1 + P3 Jaccard disambiguation
 
 ---
 
+## 🔮 V22.1: Spherical vMF Gate Upgrade (2026-07-09)
+
+24-round relay debate (6 models × 4 rounds with compressed knowledge passing) produced 16 architecture proposals. **16 modules implemented** — architecture structure unchanged, control logic upgraded.
+
+| Layer | Modules |
+|-------|---------|
+| **Spherical Geometry** | TurboMeta_vMF (sigmoid→geodesic distance), P7Gate_vMF, MasterGate_vMF |
+| **Head Self-Org** | KappaPhaseScheduler (explore→crystallize), CompetitiveCrystallization, Temperature Annealing |
+| **Topology Monitor** | LocalBettiMonitor (β₀ collapse early-warning, O(k log n)) |
+| **7-Adam Coord** | MomentumExchangePool (decoupled signals), PCACurvatureProxy, LocalCurvatureEstimator |
+| **White-Box Probes** | AdaptiveProbeSet, ActiveExperimentProbe (causal matrix C) |
+| **Anti-Redundancy** | SSOL (entropy-modulated repulsion), MutualInformationPenalty |
+
+**Verified**: vMF gate gradient healthy at 0.00092/param (comparable to P6/P7). κ stable at 2.0, no saturation. 50-epoch quick test: CE 3.87→0.002. Checkpoint compatible with V22.
+
+---
 ## 🛡️ Spherical Normalization (root-cause gradient fix)
 D/E layers: full gradient death at E20-160 (CE→5.0, gate grads→0). Root cause: numerical range → sigmoid saturation → chain collapse. Fix: `F.normalize(dim=-1)` on all injected reps (rd/me/pixel/FFT). Full-scale injection (×0.1) without collapse.
 
@@ -87,8 +128,12 @@ D/E layers: full gradient death at E20-160 (CE→5.0, gate grads→0). Root caus
 ---
 
 ## 🔬 Related
-- **vLLM PR #47491** — Fix hybrid KV cache truncation
-- **vLLM #43090** — `has_initial_states` root-cause chain
-- **DeepSeek-V3** — Graviton Anchors (adopted by AmoebaFPS → GDI)
+- **vLLM PR #48195** — Fix per-group prefix-hit divergence in hybrid scheduler (active)
+- **vLLM #43090** — Root-cause: `has_initial_states` boundary (→ maintainer fix #47782 by njhill)
+- **vLLM PR #47491** — Coordinator-level guard, closed in favor of #47782
+- **vLLM PR #11314** — Progressive alignment for DeepSeek V4 spec decoding (vllm-ascend)
+- **vLLM RFC #11356** — PD-disaggregated Mamba routing (vllm-ascend)
+- **DeepSpec RFC #52** — Architectural reference for DSpark
+- **DeepSeek-V3** — Graviton Anchors (adopted by AmoebaFPS → GDI framework)
 
-*Independent research. Open to collaboration.*
+*Independent research. Open to collaboration. Reach out: 1503163696@qq.com*
