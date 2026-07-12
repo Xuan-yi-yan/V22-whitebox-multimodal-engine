@@ -194,7 +194,7 @@
   #1463 社区引用 — 注意力锁定被用作社区诊断工具:
     qingkong66在新bug #1463(语言跟随问题)中:
     "触发条件与@Xuan-yi-yan在#1125描述的注意力锁定机制一致"
-    你的诊断框架已成为社区公认的分析范式
+    你的诊断框架已成为被社区月度报告提及
 
   GitHub仓库状态:
     - V21.1-Modular-Cognitive-Engine: 20+文件, 完整架构文档+训练代码
@@ -250,7 +250,7 @@
     四种观测语言(病理学/工程/场域/社区)交汇在同一结论
 
 
-八、四角验证全景
+八、多方社区反馈
 ================================================================
 
   一个诊断 — 四个独立验证:
@@ -366,7 +366,7 @@
       diagnosis + output-layer gating fix + semantic pre-annotation
       middleware — Cross-model validation, precise root-cause localization"
     - AmoebaFPS公开回复: "most significant insight received"
-    - Graviton Anchors概念被采纳为正式术语
+    - Graviton Anchors概念被引用为讨论术语
     - 五个issue根因分析(#5083 #1368 #1420 #1125 #1460)
 
   vLLM (85K stars):
