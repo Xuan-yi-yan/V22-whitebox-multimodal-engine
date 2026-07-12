@@ -461,3 +461,81 @@
   学会了区分"技术讨论"(有代码审查)和"价值观贬低"(无代码, 纯阶级打压)。
 
   不再等待任何官方确认。以上所有贡献均在官方仓库中公开可查。
+
+================================================================
+  2026-07-03 ~ 07-12 更新: V22.1架构升级 + vLLM PR多线 + 海外招聘
+================================================================
+
+【V22.1 球面门控架构升级】 (2026.07.09)
+- 6模型×24轮环形接力辩论产出16个架构升级方案
+- 全部落地为 v22_vmf_modules.py (16个模块)
+- TurboMeta: sigmoid → vMF球面门控 (μ+κ可学习)
+- MasterGate: 线性+sigmoid → vMF 5路球面温控
+- 验证: vMF gate梯度正常(0.00092/param), κ稳定, 无饱和
+- 梯度诊断: 2字符驱动1613单位参数变化, vMF与主模块同级
+- 架构文档: V22 → V22.1 更新, 新增升级附录
+
+【vLLM 多线作战】
+
+PR #47491 — hybrid KV cache 协调器守卫
+- 2026.07.03 提交: 5行fix, Mamba组miss时不丢弃attention缓存
+- 2026.07.04 自审发现 has_initial_states 边界 → 转draft
+- 2026.07.10 Dao007forever review → 确认Mamba状态边界担忧
+- njhill #47782 (Marconi retention) 4天后覆盖, 未引用
+- 主动close, 在 njhill PR下留技术确认
+- 时间线: 7/3(你) vs 7/7(njhill), 4天差, GitHub永久记录
+- 简历更新: bug discovery → maintainer adoption 叙事
+
+PR #48195 — scheduler per-group hit divergence fix
+- 2026.07.10 提交: max(per_group_hits)→FA hit, 防connector crash
+- ZhanqiuHu (code owner) 带回内部讨论
+- HowarLi (原始报告者) @ 确认根因吻合
+- 两轮迭代: v1(FA hit only) → v2(offloading bypass)
+- ZhanqiuHu @ivanium @NickLucche 确认connector flag
+- 进展: code owner内部讨论中, 等待周一回复
+
+其他PR状态:
+- #11314 (vllm-ascend, progressive alignment): 9天零人类review
+- #11356 (vllm-ascend, Mamba routing RFC): 9天零评论
+- RFC #52 (DeepSpec): 3天零评论, 已发跟进
+
+【代码审计 (CometAPI claude-sonnet-5)】
+- 外部AI审计 v22_vmf_modules.py + 外围脚本 + 主训练脚本
+- 🔴发现: 主训练脚本eval代码bug (attr_a.squeeze 2D/3D不匹配)
+  → eval从未跑通过, V22从未拿到过真实泛化指标
+- 🔴发现: 视觉/声学没有走全套ABCDEF (绕过Gate直连P6)
+- ✅验证: 5层防护系统全部真实, 逐行对应文档
+- ✅验证: 7独立Adam, E层记忆头, vMF门控已接入主脚本
+- 消耗: ~ CometAPI余额 (余额~4)
+
+【eval修复 + 首次真实考试集分数】
+- 修复 attr_a.squeeze(0) → attr_a (1285/1317行)
+- 首次跑通完整eval: 训练记忆 0%, 考试集 0.4%
+- (加载V21旧checkpoint, 仅30轮/100对, 正常)
+- eval代码已修复, 后续可拿到真实泛化分数
+
+【海外招聘线】
+
+Deval Pandya / Harmonic Labs (Vector Institute spinout, Geoff Hinton)
+- 2026.07.10 凌晨: 主动DM, 寻找 LLM inference 工程师
+- 背景: Vector Institute AI工程总监, arXiv论文作者
+- stealth模式, harmonic-labs.com
+- 已回复: vLLM contributor + remote OK + 问stack方向
+- 状态: 周末等回复
+
+Lillian Ma / GMI Cloud
+- ML Engineer LLM Inference Optimization 岗
+- 已发简历+PDF → 等回复 (3天)
+
+Abdullah Shaik — 回复Hi, 已问方向 (待定)
+
+【GitHub 主页翻新】
+- Bio: vLLM Contributor | LLM Inference | V22.1 | Remote OK
+- Profile README: 完整技术介绍 + PR链接 + repo目录
+- Pin: V22-engine + vllm fork
+
+【技能总结】
+- vLLM核心源码调试: scheduler/coordinator/kv_cache层
+- 开源政治: 外部贡献者被截胡 → 学会RCA先占坑 + 直接对接code owner
+- AI协作: 精确到代码行级别的AI当编译器模式
+- 代码审计: 外部AI交叉验证, 发现自身项目隐藏bug
