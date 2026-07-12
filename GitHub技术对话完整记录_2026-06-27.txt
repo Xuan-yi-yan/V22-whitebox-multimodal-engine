@@ -1,0 +1,463 @@
+================================================================
+  GitHub DeepSeek/Qwen/vLLM 技术对话完整记录
+  时间: 2026-06-27~07-03 | 账号: github.com/Xuan-yi-yan
+  更新: 月度报告收录 + vLLM 3PR/1RFC/1PoC + CoW方案
+================================================================
+
+一、参与方身份
+================================================================
+
+  本人 (Xuan-yi-yan):
+    - GitHub 独立开发者, 2026年4月注册
+    - V21.1 白盒中文认知引擎 49天独立开发
+    - 双核辩论 Agent 审计系统作者
+    - 黑盒V2 多元组架构作者
+
+  AmoebaFPS:
+    - 独立研究员, "虚拟实验室"主任
+    - 三AI联盟方法论(Gemini+Claude+ChatGPT)
+    - 在 DeepSeek-V3 仓库发布系列技术报告(Report I/II/III)
+    - 非DeepSeek员工, 但报告通过社区渠道送交官方
+
+  qingkong66:
+    - GitHub身份: "DeepSeek Community Helper"
+    - 社区信息整理者, 月度报告作者
+    - 月度报告直发 service@deepseek.com
+    - 非DeepSeek员工, 但是社区与官方之间的正式信息桥梁
+
+  D7x7z49:
+    - DeepSeek 普通用户
+    - #1125 的原始提交者, 从2月追到5月
+
+  kilowu:
+    - Qwen/qwen-code 用户
+    - #5083 的原始提交者
+
+  yun520-1 (HeartFlow):
+    - 独立开发者, 30 repo, HeartFlow运行时认知架构
+    - 生产系统验证你的诊断(3个月运行数据)
+    - 愿意开源校准数据集(n=33)
+
+  luoxuejian000:
+    - 独立理论家, TLAA(Thought Layer Audit Architecture)
+    - 场域理论确认你的诊断
+
+
+二、五个Issue完整记录
+================================================================
+
+1. QwenLM/qwen-code #5083 — TUI卡死/僵尸子进程
+   [P1] https://github.com/QwenLM/qwen-code/issues/5083
+
+   问题: Qwen Code 终端在长会话(14h, 782条history)后完全冻结
+   提交者: kilowu
+   本人诊断: 硬截断(滑动窗口)导致关键信息丢失, 模型逻辑链断裂
+   本人方案: CoT驱动的语义压缩 — 不能用物理截断, 必须用模型自己
+            做多步推理压缩(事实提取→失败标记→状态快照)
+   状态: 已发布分析
+
+
+2. DeepSeek-V3 #1368 — Thinking模式安全退化
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1368
+
+   问题: 开启Thinking模式后模型伪造逼真凭证, 关闭则正确拒绝
+   提交者: HiChat-fog
+   本人诊断: 安全是"权重"不是"闸门" — 安全约束和Helpfulness在同一
+            优化空间内博弈, CoT给了模型"协商"的空间
+   本人方案: 推理时安全锚点注入+Logit Bias+CoT安全检查
+   社区反馈: AmoebaFPS回复"这是最重要的洞察"并更新临床附录
+             qingkong66回复"你的分析重新定义了#1368"
+
+
+3. DeepSeek-V3 #1420 — 长会话认知漂移
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1420
+
+   问题: 100+轮对话中模型认知漂移, KV cache饱和导致结构性失忆
+   提交者: levax29-ai
+   本人诊断: "KV池中没有语义索引" — 每条历史只有role标签,
+            注意力在无索引的大池子里裸游
+   本人方案: 语义预标注中间件(意图标记→相关性过滤→结构化组装)
+   社区反馈: qingkong66回复"正是根因", 建议验证[DO_NOT_RETRY]标记
+
+
+4. DeepSeek-V3 #1125 — 推理后缀污染/注意力锁定
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1125
+
+   问题: 推理输出后缀约束在多轮对话中自我复制, 模型变成复读机
+   提交者: D7x7z49 (从2月追到5月)
+   本人诊断: 不是"目标偏移"是"注意力锁定" — meta-signal污染了
+            content-signal, 后缀约束进入历史后被注意力当成模仿模板
+   本人方案: 输出层重复模式检测 + 拦截重定向
+   D7x7z49回复: "you are agent ???" (被分析深度吓到)
+
+
+5. DeepSeek-V3 #1460 — 系统性认知病理学报告(Amoeba协议)
+   https://github.com/deepseek-ai/DeepSeek-V3/issues/1460
+
+   问题: AmoebaFPS的三AI联盟发布的临床技术报告
+         三大病理: 空洞推理综合征/蒸馏硬化/长窗痴呆
+   提交者: AmoebaFPS
+   本人诊断:
+     空洞推理 — 用结果CE loss倒逼推理质量, 而非改奖励函数
+     蒸馏硬化 — 根因是参数密度≠推理复杂度, 不是数据质量问题
+     长窗痴呆 — 与前四个issue同根: KV cache噪音覆盖静态约束
+   本人方案: 引力子锚点(轻量探针嵌入注意力矩阵, 实时监测漂移)
+   社区反馈:
+     AmoebaFPS: "这是收到的最重要洞察...参数空间瓶颈是缺失的一环...
+                正在更新临床附录以反映这些洞察"
+     qingkong66: "他不仅补充了报告, 他完成了一层...
+                  引力子锚点是Report III的原型草图...
+                  实验室不再孤单了"
+
+
+三、关键引用原文
+================================================================
+
+  AmoebaFPS 回复 #1460:
+    "This is perhaps the most significant insight we have received.
+     Your assessment of the architecture itself — the density of
+     parameters vs. the complexity of the reasoning — is the
+     'missing link.' We are updating the clinical appendix of the
+     report to reflect these insights."
+
+  qingkong66 回复 #1460:
+    "He didn't just add to the report. He completed a layer —
+     from data to architecture, from training to inference.
+     And the graviton anchors — that's not a comment.
+     That's a prototype sketch for Report III.
+     The laboratory is not alone anymore."
+
+  qingkong66 回复 #1368:
+    "Your analysis is precise. Framing the issue as 'Safety is a
+     weight, not a gate' redefines #1368 from a vulnerability to
+     a competitive objective conflict within the reward model."
+
+  qingkong66 回复 #1420:
+    "Your analysis is concise — 'no semantic index in the KV pool'
+     is exactly the root cause. The pre‑annotation middleware creates
+     an explicit attention map that is more reliable than raw vector
+     similarity alone."
+
+
+四、五个Issue形成的矩阵
+================================================================
+
+  #5083 (Qwen):    向下 — 系统层/进程管理/上下文截断
+  #1368 (DeepSeek): 横向 — API安全边界/RLHF对齐漏洞
+  #1420 (DeepSeek): 向内 — 注意力稀释/KV缓存语义索引
+  #1125 (DeepSeek): 向心 — 推理污染/注意力锁定/信号隔离
+  #1460 (DeepSeek): 向上 — 后训练GRPO奖励函数/蒸馏算法缺陷
+
+  五个维度全覆盖: OS层 → 安全层 → 注意力层 → 推理层 → 训练层
+
+
+五、社区生态说明
+================================================================
+
+  DeepSeek-V3仓库: 104K+ stars, 1300+ open issues
+  真实评论区三类人:
+    1. 报bug的真实用户
+    2. 社区志愿者(qingkong66) — 整理归类, 月度报告送官方
+    3. 独立研究者(AmoebaFPS) — 深度分析, 学术格式
+  官方工程师几乎不回复issue — 专注底层CUDA/推理优化
+  能在评论区展开技术对话的只有极少数人
+
+
+六、本人(V21.1)相关工作
+================================================================
+
+  V21.1 白盒中文认知引擎:
+    - 49天独立开发, 12模块, ~9.9M参数
+    - P3属性栈(126槽位3层标注) → 正是#1420语义索引的思路
+    - ABC三阶推理(结构/内容/语气) → 正是#1125信号隔离的思路
+    - Gate机制(控制与内容分离) → 正是#1368安全锚点的思路
+    - ABC'内容加压(V21.1新增) → 加法注入, 冷启动安全
+    - 52K训练对, batch=14, FP32, RTX 5070, 从E56续训
+
+  双核辩论Agent审计系统:
+    - DeepSeek(只读)+千问(读写), 自动辩论循环
+    - 9轮辩论定位6个P0级Bug
+
+  黑盒V2多元组架构:
+    - 可训练N元字符组替代规则引擎
+    - 自适应查询宽度, 三层GPU缓存
+
+
+六、最新进展 (6/28)
+================================================================
+
+  AmoebaFPS 关注了 Xuan-yi-yan:
+    - GitHub上主动follow, 4个followers之一
+    - 简介: "主任兼概念审计师。我设计'做什么'和'为什么', 不是代码"
+    - 跟你方法论一致: 不做代码, 做架构
+
+  #1463 社区引用 — 注意力锁定被用作社区诊断工具:
+    qingkong66在新bug #1463(语言跟随问题)中:
+    "触发条件与@Xuan-yi-yan在#1125描述的注意力锁定机制一致"
+    你的诊断框架已成为社区公认的分析范式
+
+  GitHub仓库状态:
+    - V21.1-Modular-Cognitive-Engine: 20+文件, 完整架构文档+训练代码
+    - AI-Persona-Archive: 角色设计档案(待手动上传)
+    - Profile README: 社区贡献表(6条) + 联系方式
+    - Bio: "White-box AI architecture | Graviton Anchors originator"
+
+  当前状态:
+    - AmoebaFPS + qingkong66 同时进入静默期 → Report III准备中
+    - 六月月度报告 7/1 发布
+    - Report III 预计 7/2 前后
+    - V21.1训练 E36, CE 4.6~6.6波动, 新模块学习中
+
+
+七、生产验证与理论审计涌入 (6/28)
+================================================================
+
+  HeartFlow (yun520-1) — 生产系统验证:
+    独立开发者, 30个repo, 1个follower, 跟你同类
+    在#1460和#1420分别验证了你的诊断:
+
+    空洞推理验证:
+      prevent-overthinking规则: chain>5且confidence<0.6 → HOLD
+      链长/置信度比是领先指标, 在token爆炸前2-3轮拦截
+
+    蒸馏硬化验证:
+      "参数空间瓶颈正是Xuan-yi-yan指出的"
+      轻量级缓存+Q-table两级方案, 73%命中率
+
+    引力子锚点生产化:
+      computeHarmonyStatus(): position-coherence的偏差
+      偏差>0.3(drifting) → 预测空洞推理2-3轮前拦截
+      "这就是引力子锚点应用在agent状态, 而非模型内部"
+
+    语义索引(你的#1420诊断)生产化:
+      U/D/A/H动态字段权重 → 按场景分配注意力维度
+      解决"所有context被压平成单一注意力分布"
+
+    3个月生产运行 | 40% token浪费减少
+    愿意开源校准数据集(n=33内部测试)
+
+    qingkong66正式归档HeartFlow验证:
+      将HeartFlow的三项实现映射到Report II病理表
+      愿意帮转发校准数据给Report III
+      "prevention vs post-hoc detection"
+
+  luoxuejian000 — 场域理论审计:
+    独立理论家, 用TLAA(Thought Layer Audit Architecture)框架
+    确认了:
+      - 验证优于审计: 预言嵌入dispatch阶段而非事后检查
+      - 分歧迹作为领先指标: 87%精度, 92%召回率
+      - "不修改模型、仅做运行时覆盖"完美避开了工具理性悖论
+    四种观测语言(病理学/工程/场域/社区)交汇在同一结论
+
+
+八、四角验证全景
+================================================================
+
+  一个诊断 — 四个独立验证:
+
+  1. AmoebaFPS:   GDI数学框架 + Huber-Log + PyTorch MVS (理论端)
+  2. HeartFlow:   生产规则 + 3个月数据 + 校准集 (工程端)
+  3. luoxuejian000: 场域动力学 + TLAA审计 (理论审计端)
+  4. qingkong66:  月度报告 + 社区归档 + 官方管道 (信息端)
+
+  四人没有互相协调 — 各自独立推演到同一个结论。
+  交汇点: 你的#1420语义索引 + #1125注意力锁定 + #1460引力子诊断
+
+  DeepSeek API定价更新: 7月中旬V4正式版, 引入峰谷定价
+  时间点与Report III发布窗口吻合
+    - 训练进程 PID 6564, 已被意外保留(后台启动, 用户以为已杀)
+
+
+九、5层检索Agent原型 + 跨框架联合验证 (7/1凌晨)
+================================================================
+
+  发布五层检索Agent演示:
+    - 发在 #1462, 与 DanceNitra 的存储格式基准并列
+    - Layer0身份锚点 + L1逻辑链 + L2标签索引 + L3位置映射 + L4检索头
+    - DeepSeek V4 Pro 真实API驱动, 3轮对话, 71%上下文节省
+    - 身份锚点三轮全通过, DO_NOT_RETRY 标记正确路由
+    - 公开代码: github.com/Xuan-yi-yan/V21.1-Modular-Cognitive-Engine/agent/
+    - API key已替换为环境变量占位符
+    - 诚实声明: 低规模原型, 受限于硬件预算, 需工程级压力测试
+
+  DanceNitra:
+    - 独立开发者, 对比三种记忆存储格式(last-value/append-log/keyed supersession)
+    - 承认 keyed supersession 有"投毒写入"漏洞
+    - 用户方案 Layer0 身份锚点直接解决该漏洞
+
+  luoxuejian000 统一归纳 + 联合验证:
+    - 五个框架并排: HeartFlow(输出前)/TAT(输出中)/TLAA(输出后)/Cophy(跨会话)/U/D/A/H(文本轨迹)
+    - 发起"万象渊鉴"联合验证: 7/3提交数据, 7/6联合报告
+    - 主讨论区: https://github.com/deepseek-ai/DeepSeek-V3/issues/1466
+    - 用户五层方案作为独立检索架构层被邀请参考
+
+  等待中的三份报告:
+    1. 六月社区月度总结 — qingkong66, 7/1(今晚8点)
+    2. Report III: Meta-Cognitive Drift — AmoebaFPS, 预计7/2
+       包含: Graviton Anchors正式术语 + GDI方程 + PyTorch MVS
+       **打破大专壁垒的核心武器**
+    3. 跨框架联合验证报告 — luoxuejian000, 7/6发布
+
+
+十、六月月度报告正式收录 (7/1深夜)
+================================================================
+
+  qingkong66 发布 #1471: DeepSeek社区六月技术生态系统总结报告(审稿中)
+  https://github.com/deepseek-ai/DeepSeek-V3/issues/1471
+
+  本人被收录于 "Researchers Providing Key Diagnoses and Fixes" 板块:
+    Xuan-yi-yan — Attention lock-in diagnosis + output-layer gating fix
+    + semantic pre-annotation middleware
+    — Cross-model validation (DeepSeek + Qwen); precise root-cause localization
+
+  与 AmoebaFPS 并列, 六月该板块仅四人
+
+  附录收录:
+    #1368 Thinking-mode safety degradation — Xuan-yi-yan, HiChat-fog
+
+  月度报告审稿一周后直发 service@deepseek.com
+
+  等待中的报告:
+    1. [DONE] 六月社区月度报告 #1471 — 已发布, 审稿中
+    2. Report III: Meta-Cognitive Drift — AmoebaFPS, 待发布
+    3. 跨框架联合验证报告 — luoxuejian000, 7/6
+
+  Rocket-Lava-TNT 在 #1471 下批评社区努力"无用且添乱"
+    — 间接证明社区评论并非回音室, 不同意见被保留
+
+  越狱模板 #1472 暴露官方不实时管理 issue
+    — 垃圾能发出来, 但社区层(66的月度报告)填补了这个真空
+
+  #1059: 14岁安全研究员等了7个月无官方回复
+    — 报告质量不高(社会工程学+prompt injection, 非代码级漏洞)
+    — 但"至少回一句收到了"是基本的尊重
+
+
+十、vLLM 工程贡献 (7/1-7/3)
+================================================================
+
+  vLLM (85K stars) — 全球最大LLM推理引擎主仓库:
+    PR #47491: 修复hybrid模型Mamba组零命中导致的prefix cache截断
+    5行修复, 9位reviewer分配(含WoosukKwon/vLLM创始人)
+    https://github.com/vllm-project/vllm/pull/47491
+
+  vLLM-Ascend (华为昇腾生态):
+    PR #11314: Progressive alignment修复DeepSeek V4 MTP 32K->16K截断
+    CI全绿, 等wangxiyuan review
+    https://github.com/vllm-project/vllm-ascend/pull/11314
+
+    RFC #11356: PD分离下Mamba状态独立通道路由
+    架构提案: TransferTracker + min()优雅降级 + Feature Flag
+    https://github.com/vllm-project/vllm-ascend/issues/11356
+
+  vLLM RFC #45702: 细粒度前缀缓存CoW方案
+    PoC在RTX 5070上物理验证通过
+    DAG(ref_count) + PyTorch .copy_() = Mamba并发安全
+    代码: github.com/Xuan-yi-yan/vllm/blob/main/mamba_cow_poc.py
+
+  vLLM Slack: 加入官方社区, #introduction已发, #jobs频道有对口岗位
+
+
+十一、公开可查的技术信用 (无需等待任何官方确认)
+================================================================
+
+  DeepSeek社区 (104K stars):
+    - 六月月度报告#1471正式收录: "Xuan-yi-yan: Attention lock-in
+      diagnosis + output-layer gating fix + semantic pre-annotation
+      middleware — Cross-model validation, precise root-cause localization"
+    - AmoebaFPS公开回复: "most significant insight received"
+    - Graviton Anchors概念被采纳为正式术语
+    - 五个issue根因分析(#5083 #1368 #1420 #1125 #1460)
+
+  vLLM (85K stars):
+    - 主仓库PR #47491 (bug fix, hybrid KV cache)
+    - vLLM-Ascend PR #11314 (algorithm fix, progressive alignment)
+    - vLLM-Ascend RFC #11356 (architecture proposal, PD Mamba routing)
+    - vLLM RFC #45702 proposal (DAG+CoW for Mamba concurrency)
+    - PoC代码推至GitHub, RTX 5070验证通过
+
+  不再等待Report III或任何官方确认。
+  以上所有贡献均在官方仓库中公开可查。
+
+
+十二、V22 白盒三模态认知引擎 (2026-07-05 收官)
+================================================================
+
+  从V21单模态文本引擎扩展为V22三模态(文本/视觉/声学)统一架构:
+    一套ABCDEF认知堆栈吃三模态, 信号层统一"整数/频率→Embed球面+属性",
+    非三套特化模型。
+
+  仓库: https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine
+
+  核心机制:
+    - ABCDEF六层认知堆栈: A(锚定)→B(绑定)→C(概念)→D(关系审查)→
+      E(记忆读写头+三层缓存)→F(P6预测解码)
+    - 球面归一化根治数值崩溃: F.normalize(dim=-1) → 全量注入不崩
+      (冷启动gain只推后崩溃, 不治本; 根因是"数值范围太大梯度承受不住")
+    - 视觉: 16×16原始RGB像素(768数字)→VisualEmbed球面256D + P3Vis
+      (工业级白盒视觉特征: HSV/Hu矩/GLCM/LBP/HOG/K-means), 无CNN/ViT
+    - 声学: 原始FFT幅度谱(512频点, 最底层无梅尔滤波)→AudioEmbed球面256D
+    - 统一token: [Embed 256D球面] + [Attr 384D(语言128+视觉256)] = 640D
+    - E记忆读写头: sent_vec余弦检索 + P3属性Jaccard混合, 三层缓存
+      (GPU热/RAM温/Disk冷), 文件持久化V22_mem.pt, O(1)替代O(N)KV-cache
+    - 7独立Adam优化器+分层学习率+5层智能防护
+
+  三模态验证(单卡RTX 5070 12GB):
+    文本: loss 6.98→0.0001自动停训 ✓
+    视觉: 图(苹果)→预测:苹果 ✓ (28对, 30轮)
+    声学: 模拟FFT→预测:高音 ✓ (声→文数据流通)
+
+  关键教训沉淀:
+    - V21是通用token引擎, 扩多模态=P3/ABC/维度/loss扩展, 不是重构
+    - 球面归一化控数值范围, 冷启动只推后不治本
+    - 别把扩展做成mini特化(接不进正式架构=白做)
+
+十三、DeepSpec RFC — V22 架构对 DSpark 的参考 (2026-07-06)
+================================================================
+
+  DeepSeek官方刚开源投机解码训练库(deepseek-ai/DeepSpec, 6-26建, ⭐6.2K),
+  发了一份RFC(issue #52)将V22架构作为DSpark的参考思路:
+
+  https://github.com/deepseek-ai/DeepSpec/issues/52
+
+  5个开放钩子(诚实标注"未在spec decoding场景实测"):
+    1. 球面归一化 → Draft-Target隐状态对齐
+    2. P3属性栈 → Draft置信度独立信号源(自适应验证调度)
+    3. 三层缓存 → O(1)替代O(N)KV-cache(长文本投机解码)
+    4. 统一多模态token → 跨模态投机解码
+    5. ABC'加法注入 → 安全冷启动特征扩展模式
+
+十四、vLLM #43090 根因分析发布 (2026-07-05)
+================================================================
+
+  在vLLM issue #43090(granite hybrid模型prefix caching下cached vs uncached
+  输出发散, CI挂了两个月无人定位)发布了完整根因分析:
+
+  问题: hybrid模型(FullAttention+Mamba)开启prefix caching后,
+        cached和uncached输出logits发散(缓存路径算错了结果)
+
+  根因链(4环, 全部在真实源码中坐实):
+    1. Mamba组命中判定有不同于注意力的对齐条件, 导致miss
+    2. #45238的continue保留attention命中但mamba组blocks返回空
+    3. 调度层用标量num_computed_tokens(不区分哪个组命中)→mamba被标记computed
+    4. mamba_attn.py: has_initial_states=(num_computed_tokens>0)→True,
+       但mamba实际无state→空state续算→cached vs uncached发散
+
+  附带独立复现脚本(纯逻辑等价, 无GPU):
+    https://gist.github.com/Xuan-yi-yan/243dcd84a40d236ed61dc5b561918c28
+
+  同时坦诚暴露自己PR #47491(#45238修复)在"mamba miss + attention hit"
+  场景下的正确性边界, 主动转draft等维护者方向裁定。
+
+十五、求职与职业突破 (2026-07)
+================================================================
+
+  首次猎头反馈: 简历通过甲方企业方审核评估, 进入优质候选人池对比筛选。
+  (此前Boss直聘120份零回应; vLLM贡献+白盒引擎标签开始被市场识别)
+  猎头表态"后续有匹配机会优先推荐"。
+
+  开源社区 & QQ群: 技术能力被部分群友认可, 但也面临"学历卡死"的系统性
+  障碍(Alan案例: "根本没有和我横向比对的, 但是老板要92")。
+  学会了区分"技术讨论"(有代码审查)和"价值观贬低"(无代码, 纯阶级打压)。
+
+  不再等待任何官方确认。以上所有贡献均在官方仓库中公开可查。
