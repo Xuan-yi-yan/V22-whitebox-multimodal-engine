@@ -306,3 +306,47 @@
   文件: C:/ai/v22_vmf_modules.py (16个模块)
          C:/ai/train_v22_stage1.py (已打补丁: TurboMeta+MasterGate→vMF)
          备份: train_v22_stage1_original.py
+
+
+════════════════════════════════════════════════════════════════
+  实施状态追踪 (2026-07-12 外部代码审计后更新)
+  原则: 文档描述 != 完成状态, 以代码实际运行结果为准
+════════════════════════════════════════════════════════════════
+
+已接入主训练脚本且验证通过:
+  TurboMeta_vMF — 球面门控已打补丁, 梯度正常(0.00092/param)
+  MasterGate_vMF — 5路温控已接入, 输出形状兼容
+  5层防护系统 — 全部真实, 逐行对得上文档
+  7独立Adam — 数量/学习率倍数与文档一致
+  E层记忆读写头 — me_to_sent真实接入P6
+  球面归一化 — 全部D/E/像素/FFT已F.normalize
+  主训练脚本 — train/test/exam三段划分存在
+
+已写代码但未接入训练循环 (库模块, 需手动wiring):
+  P7Gate_vMF — 模块存在, P7内部仍用原始sigmoid gate
+  KappaPhaseScheduler — 存在但从未接触任何kappa参数
+  SSOL / MutualInformationPenalty — 模块可用, 训练循环未调用
+  MomentumExchangePool — 自洽但未接入7-Adam
+  PCACurvatureProxy — 数学正确但未接入训练监控
+  SphericalVoronoiProbe — 监控可用但未接入
+  AdaptiveProbeSet — 半成品(nn.Parameter在非nn.Module中)
+  CompetitiveCrystallization — 相似度矩阵检测逻辑有误
+  LocalBettiMonitor — 崩溃检测已修复(07.12), 未接入训练
+  LocalCurvatureEstimator — crash bug已修复(07.12), 未接入
+
+已知问题/设计限制:
+  vMF实现: 逐维方向门控(设计意图), 非全量vMF分布
+  视觉/声学: 未走ABCDEF全栈, vision_step绕过Gate直连P6
+  eval代码: attr_a.squeeze() bug已修复(07.12), 首次拿到考试集分数
+  考试集分数: 0.4%(加载旧checkpoint/100对/30轮, 不具代表性)
+  test_set定义但从未使用(10%数据死代码)
+  D层关系分类: 全零时偏置为因果(argmax全零=0)
+  数据量严重不足: 距架构有效所需5000~50000对差距大
+  多模态token: vision/audio未接入P3-L/ABC'/Gate
+
+统计数据:
+  16方案中: 2个完全接入训练 | 4个可用未接入 | 6个库模块待wiring
+             | 2个已修复bug | 2个设计限制(暂不修)
+  vMF门控: 仅增0.5%参数(180/35756), delta/param与主模块同级
+  真实泛化: 首次eval已跑通(07.12), 之前从未拿到
+  外部审计: claude-sonnet-5@CometAPI, 成本, 发现2crash bug
