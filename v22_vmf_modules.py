@@ -209,8 +209,11 @@ class LocalBettiMonitor:
             curr_neighbors = set(indices[1:].tolist())  # 排除自己
             prev = self.prev_neighbors[i]
 
-            if prev and len(curr_neighbors) == 0:
-                self.collapse_warnings += 1  # β₀ 1→0: 恶性崩溃
+            # Detect collapse: nearest neighbor suddenly far away
+            nearest_dist = dists[i][indices[1]].item() if len(indices) > 1 else float('inf')
+            if prev and nearest_dist > 1.0:
+                # Head has gone far from all other heads = collapse signal
+                self.collapse_warnings += 1
             elif prev and len(prev & curr_neighbors) < len(prev) * 0.3:
                 self.reorg_events += 1      # 近邻大轮换: 良性重组
             self.prev_neighbors[i] = curr_neighbors
@@ -327,7 +330,7 @@ class LocalCurvatureEstimator:
         short_cv = s.std() / (s.mean() + 1e-8)
         long_cv = l.std() / (l.mean() + 1e-8)
         curvature = float(short_cv / (long_cv + 1e-8))  # >1 = 短期曲率增大
-        return curvature.item(), self.threshold
+        return curvature, self.threshold
 
     def step_threshold(self, total_steps, current_step, initial=0.7, final=0.2):
         """自适应阈值退火"""
