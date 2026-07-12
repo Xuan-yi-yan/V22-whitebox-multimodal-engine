@@ -1282,7 +1282,7 @@ if exam_set:
             p3lf_v = torch.cat(feats_v) if feats_v else torch.zeros(60,device=DEVICE)
         else: p3lf_v = torch.zeros(60,device=DEVICE)
         p3lf_v = F.pad(p3lf_v,(0,max(0,128-p3lf_v.shape[0])))[:128].unsqueeze(0)
-        a_log_v, ah_v = abcA(attr_a.squeeze(0), wo[:,:attr_a.shape[1],:])
+        a_log_v, ah_v = abcA(attr_a, wo[:,:attr_a.shape[1],:])  # v22-fix: keep 3D, matching training loop L917
         ct_v = abcB(ah_v, attr_a, p3lf_v)
         ac_v = abcC(ct_v, attr_a)
         a_prob_v = a_log_v.softmax(-1)
@@ -1314,7 +1314,7 @@ if exam_set:
                 p3lf_e = torch.cat(feats) if feats else torch.zeros(60,device=DEVICE)
             else: p3lf_e = torch.zeros(60,device=DEVICE)
             p3lf_e = F.pad(p3lf_e,(0,max(0,128-p3lf_e.shape[0])))[:128].unsqueeze(0)
-            a_log_e, ah_e = abcA(attr_a.squeeze(0), wo[:,:attr_a.shape[1],:])
+            a_log_e, ah_e = abcA(attr_a, wo[:,:attr_a.shape[1],:])  # v22-fix: keep 3D, matching training loop L917
             ct_e = abcB(ah_e, attr_a, p3lf_e)
             ac_e = abcC(ct_e, attr_a)
             a_prob_e = a_log_e.softmax(-1)
