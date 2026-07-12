@@ -1,0 +1,82 @@
+================================================================
+  V22.1 多核协作实战: AI+人类工程师联合完成 vLLM 核心PR全记录
+  时间: 2026-07-09 ~ 07-12 | PR: vllm-project/vllm #48195
+================================================================
+
+【背景】
+V22.1 架构升级(16个方案)源于6模型×24轮环形接力辩论。在完成架构代码落地后,
+转向 vLLM 开源贡献。此前 PR #47491 被 maintainer njhill 的方案覆盖且未引用,
+吸取教训后调整策略: RCA 先占坑 → 争取 maintainer 认可 → 迭代代码。
+
+【AI Agent 的角色】
+本次 PR 全流程中, AI (CherryClaw / Claude Opus 4.7) 承担了以下工作:
+
+1. 代码层 — 读取远程源码, 定位修复点, 编写/迭代代码
+   - 通过 gh CLI 直接读取 vllm-project/vllm 远程仓库源码
+   - 定位 scheduler.py L715: max(per_group_hits) 与注释意图矛盾
+   - 编写 fix, 创建分支, 提交 PR, 处理 DCO 签名
+
+2. 沟通层 — 撰写技术评论, 与 maintainer 对话
+   - 在 #46453 发布 RCA 根因分析
+   - 回应 ZhanqiuHu 的技术反馈
+   - 回应 HowarLi 的 @ 提及
+
+3. 策略层 — 基于记忆库中的历史经验推导策略
+   - 记忆库存储了 #47491 被截胡的完整教训
+   - 本次策略: 先 RCA 占坑 → 等方向确认 → 再写代码
+   - 当 ZhanqiuHu 说"don't change offloading", 秒懂并重构
+
+4. 运营层 — Git 操作, DCO 修复, PR 管理
+   - 分支管理, rebase, force push
+   - DCO signoff 修复
+   - 多次代码迭代推送
+
+【人类工程师的角色】
+Xuan-yi-yan 承担了以下关键决策:
+
+1. 选题 — 从多个候选 bug 中选择 #46453 (零评论/零维护者/与自身经验匹配)
+2. 方向判断 — "不改最小补丁, 写完整方案"(吸取 #47491 教训)
+3. 时机把握 — 等 maintainer 回应, 不盲目修改
+4. 叙事控制 — 将经验写入简历时保持事实准确, 不做夸大
+5. 质量控制 — 外部 AI 审计发现代码 bug 后立即修复
+
+【PR 时间线】
+07.09 发现 #46453 bug, 决策介入
+07.10 发布 RCA 根因分析评论
+07.10 提交 PR #48195 (v1: FA hit only)
+07.10 HowarLi @确认根因, 提供技术细节
+07.10 ZhanqiuHu review, 方向确认
+07.10 v2: 两路方案(offloading bypass + NIXL max)
+07.10 ZhanqiuHu @ivanium @NickLucche 确认 connector flag
+07.11 周末等待
+07.12 (待续)
+
+【与 #47491 的对比】
+              #47491              #48195
+策略          先写代码再等review   先RCA占坑再写代码
+改动规模      5行(被认为太小)     10+行(两路方案)
+maintainer    0人类review(7天)    <24h即回复
+结果          被截胡没引用         进行中, 有code owner跟进
+沟通方式      GitHub ping         直接RCA + 技术对话
+
+【关键技术点】
+- 根因: scheduler.py L715 max(per_group_hits) 在 Mamba state 比 FA block
+  更深时, 向connector报告了超出GPU实际范围的 token 数 → 引擎崩溃
+- 修复: offloading connector 绕过 per-group 逻辑, NIXL/PD 保留 max()
+- 技术领域: hybrid cache / per-group divergence / connector 层
+
+【经验总结】
+1. 外部贡献者在大型开源项目中的 PR 通过率 < 20%
+2. 最小改动策略在 vLLM 不起作用 —— maintainer 更看重方案完整性
+3. RCA 先占坑 + 争取 maintainer 背书 > 闷头写代码
+4. AI Agent 在精确到代码行级别的任务上表现优异
+5. 记忆库(历史经验)是 AI Agent 做策略判断的关键基础设施
+6. 外部 AI 交叉审计能发现自身项目的隐藏 bug
+7. 开源贡献的"账"要记实, 尤其是要拿去交易(找工作)的账
+
+【相关链接】
+- PR #48195: https://github.com/vllm-project/vllm/pull/48195
+- Issue #46453: https://github.com/vllm-project/vllm/issues/46453
+- Issue #43090: https://github.com/vllm-project/vllm/issues/43090
+- PR #47491: https://github.com/vllm-project/vllm/pull/47491
+- V22.1 repo: https://github.com/Xuan-yi-yan/V22-whitebox-multimodal-engine
